@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conway Automaton Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--accent:#6c5ce7;--accent2:#00cec9;--text:#e0e0e0;--dim:#666;--red:#ff6b6b;--green:#00b894;--yellow:#fdcb6e;--blue:#74b9ff}
+body{font-family:'SF Mono',Monaco,'Cascadia Code',monospace;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.header{background:linear-gradient(135deg,#12121a,#1a1a2e);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header h1{font-size:16px;font-weight:600;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .status{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--dim)}
+.header .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:320px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.chat-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+.panel{display:flex;flex-direction:column;overflow:hidden}
+.panel-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0;background:var(--card)}
+.panel-header .badge{background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;font-size:10px}
+.panel-body{flex:1;overflow-y:auto;padding:8px 12px;font-size:11px;line-height:1.5}
+.panel-body::-webkit-scrollbar{width:5px}
+.panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.stat-row{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
+.stat-box{flex:1;text-align:center;padding:6px}
+.stat-box .num{font-size:18px;font-weight:700;color:var(--accent)}
+.stat-box .lbl{font-size:9px;color:var(--dim);margin-top:2px}
+
+.identity-bar{display:flex;gap:12px;align-items:center;padding:6px 12px;font-size:10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
+.identity-bar .label{color:var(--dim)}
+.identity-bar .value{color:var(--accent2);font-weight:600}
+
+/* Chat */
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-messages::-webkit-scrollbar{width:5px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.chat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.6;word-wrap:break-word;white-space:pre-wrap}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.agent{align-self:flex-start;background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px}
+.chat-msg.system{align-self:center;background:rgba(253,203,110,.1);color:var(--yellow);border:1px solid rgba(253,203,110,.2);font-size:10px;max-width:90%}
+.chat-msg .msg-time{font-size:9px;color:rgba(255,255,255,.4);margin-top:4px}
+.chat-msg.agent .msg-time{color:var(--dim)}
+.chat-input-bar{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;background:var(--card)}
+.chat-input-bar input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.chat-input-bar input:focus{border-color:var(--accent)}
+.chat-input-bar button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600}
+.chat-input-bar button:hover{opacity:.9}
+.chat-input-bar button:disabled{opacity:.4;cursor:not-allowed}
+
+/* Sidebar items */
+.log-line{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.02);white-space:pre-wrap;word-break:break-all;font-size:10px}
+.log-line.error{color:var(--red)}.log-line.warn{color:var(--yellow)}.log-line.info{color:var(--dim)}
+.tool-call{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px}
+.tool-call .tool-name{color:var(--accent);font-weight:600;font-size:11px}
+.tool-call .tool-args{color:var(--dim);font-size:10px;max-height:40px;overflow:hidden}
+.tool-call .tool-result{color:var(--accent2);font-size:10px;margin-top:3px;max-height:50px;overflow:hidden;border-top:1px solid var(--border);padding-top:3px}
+.goal-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px}
+.goal-item .goal-title{font-weight:600;font-size:11px;margin-bottom:3px}
+.goal-item .goal-status{font-size:10px;padding:1px 6px;border-radius:3px;display:inline-block}
+.goal-item .goal-status.active{background:rgba(0,184,148,.15);color:var(--green)}
+.empty{color:var(--dim);text-align:center;padding:16px;font-style:italic;font-size:11px}
+
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
+.sidebar-tab{flex:1;padding:8px;text-align:center;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+.sidebar-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.sidebar-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.sidebar-content .tab-pane{display:none;flex:1;overflow-y:auto;padding:8px 12px}
+.sidebar-content .tab-pane.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Conway Automaton Dashboard</h1>
+  <div class="status">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Connecting...</span>
+    <span style="color:var(--border)">|</span>
+    <span id="agent-name">--</span>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="identity-bar">
+      <span><span class="label">Address: </span><span class="value" id="id-address">--</span></span>
+      <span><span class="label">Model: </span><span class="value" id="id-model">gpt-5-mini</span></span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num" id="stat-turns">0</div><div class="lbl">Turns</div></div>
+      <div class="stat-box"><div class="num" id="stat-goals">0</div><div class="lbl">Goals</div></div>
+      <div class="stat-box"><div class="num" id="stat-tools">0</div><div class="lbl">Tools</div></div>
+    </div>
+    <div class="sidebar-tabs">
+      <div class="sidebar-tab active" data-tab="tools">Tools</div>
+      <div class="sidebar-tab" data-tab="goals">Goals</div>
+      <div class="sidebar-tab" data-tab="logs">Logs</div>
+    </div>
+    <div class="sidebar-content">
+      <div class="tab-pane active" id="tab-tools"><div class="empty">No tool calls yet</div></div>
+      <div class="tab-pane" id="tab-goals"><div class="empty">No goals yet</div></div>
+      <div class="tab-pane" id="tab-logs"></div>
+    </div>
+  </div>
+
+  <!-- Chat Panel -->
+  <div class="chat-panel">
+    <div class="panel-header">
+      Chat with Agent
+      <span style="font-size:10px;color:var(--dim)">Type instructions — agent will execute them</span>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg system">Connected to automaton. Send instructions and the agent will execute them autonomously.</div>
+    </div>
+    <div class="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="Tell the agent what to do..." autofocus>
+      <button id="chat-send" onclick="sendChat()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const chatMessages = $('#chat-messages');
+let chatWaiting = false;
+
+// ─── Sidebar tabs ──────────────────────────────────────────────
+document.querySelectorAll('.sidebar-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $(`#tab-${tab.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ─── Chat ──────────────────────────────────────────────────────
+function addChatMsg(role, content, time) {
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = escapeHtml(content);
+  if (time) {
+    const ts = document.createElement('div');
+    ts.className = 'msg-time';
+    ts.textContent = new Date(time).toLocaleTimeString();
+    div.appendChild(ts);
+  }
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return div;
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function sendChat() {
+  const input = $('#chat-input');
+  const msg = input.value.trim();
+  if (!msg || chatWaiting) return;
+  
+  input.value = '';
+  chatWaiting = true;
+  $('#chat-send').disabled = true;
+  
+  addChatMsg('user', msg, Date.now());
+  
+  // Add thinking indicator
+  const thinkingDiv = addChatMsg('agent', 'Thinking...', Date.now());
+  
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg }),
+    });
+    const data = await res.json();
+    
+    if (!data.ok) {
+      thinkingDiv.textContent = `Error: ${data.error}`;
+      thinkingDiv.style.color = 'var(--red)';
+    } else {
+      // Poll for response
+      pollForResponse(data.msgId, thinkingDiv);
+    }
+  } catch (e) {
+    thinkingDiv.textContent = `Error: ${e.message}`;
+    thinkingDiv.style.color = 'var(--red)';
+  }
+  
+  chatWaiting = false;
+  $('#chat-send').disabled = false;
+}
+
+async function pollForResponse(msgId, thinkingDiv, attempts = 0) {
+  if (attempts > 60) { // 60 seconds max
+    thinkingDiv.textContent = 'Agent is still working... Check the logs for progress.';
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/chat/pending/${msgId}`);
+    const data = await res.json();
+    
+    if (data.completed) {
+      // Get the latest turn response
+      const turnRes = await fetch('/api/chat/response');
+      const turn = await turnRes.json();
+      
+      let response = turn.thinking || 'Agent completed the task.';
+      if (turn.toolName) response += `\n\nTool used: ${turn.toolName}`;
+      if (turn.toolResult) response += `\nResult: ${(turn.toolResult || '').slice(0, 500)}`;
+      
+      thinkingDiv.textContent = response;
+      thinkingDiv.classList.remove('system');
+      thinkingDiv.classList.add('agent');
+    } else if (data.found) {
+      thinkingDiv.textContent = `Working... (${attempts + 1}s)`;
+      setTimeout(() => pollForResponse(msgId, thinkingDiv, attempts + 1), 2000);
+    } else {
+      setTimeout(() => pollForResponse(msgId, thinkingDiv, attempts + 1), 2000);
+    }
+  } catch (e) {
+    setTimeout(() => pollForResponse(msgId, thinkingDiv, attempts + 1), 2000);
+  }
+}
+
+$('#chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+
+// ─── Sidebar data ──────────────────────────────────────────────
+function renderTools(tools) {
+  const el = $('#tab-tools');
+  if (!tools.length) { el.innerHTML = '<div class="empty">No tool calls yet</div>'; return; }
+  el.innerHTML = tools.slice(0, 20).map(t => `
+    <div class="tool-call">
+      <div class="tool-name">${escapeHtml(t.name || 'unknown')}</div>
+      <div class="tool-args">${escapeHtml((t.arguments || '').slice(0, 200))}</div>
+      ${t.result ? `<div class="tool-result">${escapeHtml((t.result || '').slice(0, 200))}</div>` : ''}
+    </div>
+  `).join('');
+  $('#stat-tools').textContent = tools.length;
+}
+
+function renderGoals(goals) {
+  const el = $('#tab-goals');
+  if (!goals.length) { el.innerHTML = '<div class="empty">No goals yet</div>'; return; }
+  el.innerHTML = goals.map(g => `
+    <div class="goal-item">
+      <div class="goal-title">${escapeHtml(g.title || 'Untitled')}</div>
+      <span class="goal-status ${g.status || 'active'}">${g.status || 'active'}</span>
+    </div>
+  `).join('');
+  $('#stat-goals').textContent = goals.length;
+}
+
+function addLogLine(line) {
+  const el = $('#tab-logs');
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  if (line.includes('ERROR')) div.classList.add('error');
+  else if (line.includes('WARN')) div.classList.add('warn');
+  div.textContent = line;
+  el.appendChild(div);
+  if (el.children.length > 300) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ─── Fetch all data ────────────────────────────────────────────
+async function fetchAll() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    $('#agent-name').textContent = data.name || '--';
+    $('#id-address').textContent = (data.walletAddress || '--').slice(0, 10) + '...';
+    $('#stat-turns').textContent = data.turns || 0;
+    renderTools(data.toolCalls || []);
+    renderGoals(data.goals || []);
+    if (data.recentLogs) {
+      const el = $('#tab-logs');
+      if (!el.children.length) {
+        for (const line of data.recentLogs.slice(-100)) addLogLine(line);
+      }
+    }
+  } catch {}
+}
+
+// ─── WebSocket ─────────────────────────────────────────────────
+let ws;
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}`);
+  ws.onopen = () => { $('#status-dot').style.background = 'var(--green)'; $('#status-text').textContent = 'Connected'; };
+  ws.onclose = () => { $('#status-dot').style.background = 'var(--red)'; $('#status-text').textContent = 'Reconnecting...'; setTimeout(connectWS, 3000); };
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'log') addLogLine(msg.line);
+      if (msg.type === 'update') fetchAll();
+      if (msg.type === 'agent_response' && msg.turn) {
+        // Update thinking indicator in chat if waiting
+        const thinkingMsgs = document.querySelectorAll('.chat-msg.agent');
+        const last = thinkingMsgs[thinkingMsgs.length - 1];
+        if (last && last.textContent.includes('Working')) {
+          let resp = msg.turn.thinking || 'Working...';
+          if (msg.turn.name) resp += `\nTool: ${msg.turn.name}`;
+          last.textContent = resp;
+        }
+      }
+    } catch {}
+  };
+}
+
+// ─── Init ──────────────────────────────────────────────────────
+fetchAll();
+setInterval(fetchAll, 5000);
+connectWS();
+</script>
+</body>
+</html>

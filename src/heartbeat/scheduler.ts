@@ -89,6 +89,15 @@ export class DurableScheduler {
       // Clear any expired leases first
       clearExpiredLeases(this.db);
 
+      const hasDirectInferenceKey = !!(
+        this.legacyContext.config.openaiApiKey ||
+        this.legacyContext.config.anthropicApiKey
+      );
+      const hasConwayKey = !!(
+        process.env.CONWAY_API_KEY ||
+        this.legacyContext.config.conwayApiKey
+      );
+
       // Build shared context (single API call for balance)
       const context = await buildTickContext(
         this.db,
@@ -96,6 +105,8 @@ export class DurableScheduler {
         this.config,
         this.legacyContext.identity.address,
         this.legacyContext.identity.chainType,
+        hasDirectInferenceKey,
+        hasConwayKey,
       );
 
       // Get tasks that are due

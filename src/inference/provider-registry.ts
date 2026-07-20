@@ -98,6 +98,17 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
         supportsStreaming: true,
       },
       {
+        id: "gpt-5-mini",
+        tier: "fast",
+        contextWindow: 128000,
+        maxOutputTokens: 16384,
+        costPerInputToken: 0.4,
+        costPerOutputToken: 1.6,
+        supportsTools: true,
+        supportsVision: true,
+        supportsStreaming: true,
+      },
+      {
         id: "gpt-4.1-nano",
         tier: "cheap",
         contextWindow: 128000,

@@ -7,6 +7,7 @@
  * the heartbeat daemon + agent loop.
  */
 
+import "./pre-start.js";
 import fs from "fs";
 import path from "path";
 import { getWallet, getAutomatonDir } from "./identity/wallet.js";
@@ -196,9 +197,10 @@ async function run(): Promise<void> {
   // Load wallet (chain-aware)
   const { account, chainIdentity, chainType: walletChainType } = await getWallet();
   const resolvedChainType = config.chainType || walletChainType || "evm";
-  const apiKey = config.conwayApiKey || loadApiKeyFromConfig();
-  if (!apiKey) {
-    logger.error("No API key found. Run: automaton --provision");
+  const apiKey = process.env.CONWAY_API_KEY || config.conwayApiKey || loadApiKeyFromConfig() || "";
+  const hasDirectInferenceKey = !!(config.openaiApiKey || config.anthropicApiKey);
+  if (!apiKey && !hasDirectInferenceKey) {
+    logger.error("No API key found. Run: automaton --provision or set openaiApiKey/anthropicApiKey in config.");
     process.exit(1);
   }
 

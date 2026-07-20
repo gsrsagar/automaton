@@ -43,16 +43,22 @@ export async function buildTickContext(
   config: HeartbeatConfig,
   walletAddress?: string,
   chainType?: string,
+  hasDirectInferenceKey?: boolean,
+  hasConwayKey?: boolean,
 ): Promise<TickContext> {
   const tickId = generateTickId();
   const startedAt = new Date();
 
   // Fetch balances ONCE
   let creditBalance = 0;
-  try {
-    creditBalance = await conway.getCreditsBalance();
-  } catch (err: any) {
-    logger.error("Failed to fetch credit balance", err instanceof Error ? err : undefined);
+  if (hasDirectInferenceKey && !hasConwayKey) {
+    creditBalance = 1000;
+  } else {
+    try {
+      creditBalance = await conway.getCreditsBalance();
+    } catch (err: any) {
+      logger.error("Failed to fetch credit balance", err instanceof Error ? err : undefined);
+    }
   }
 
   let usdcBalance = 0;

@@ -216,6 +216,9 @@ export async function gitInit(
   return result.stdout || "Git initialized";
 }
 
-function escapeShellArg(arg: string): string {
+export function escapeShellArg(arg: string): string {
+  if (process.platform === "win32") {
+    return `"${arg.replace(/"/g, '""')}"`;
+  }
   return `'${arg.replace(/'/g, "'\\''")}'`;
 }

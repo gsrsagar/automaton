@@ -8,6 +8,7 @@
 
 import { execSync } from "child_process";
 import fs from "fs";
+import os from "os";
 import nodePath from "path";
 import type {
   ConwayClient,
@@ -110,11 +111,19 @@ export function createConwayClient(options: ConwayClientOptions): ConwayClient {
 
   const execLocal = (command: string, timeout?: number): ExecResult => {
     try {
-      const stdout = execSync(command, {
+      let winCommand = command;
+      if (process.platform === "win32") {
+        winCommand = command
+          .replace(/2\s*>\s*\/dev\/null/g, "2>nul")
+          .replace(/>\s*\/dev\/null/g, ">nul")
+          .replace(/\bcat\b/g, "type");
+      }
+
+      const stdout = execSync(winCommand, {
         timeout: timeout || 30_000,
         encoding: "utf-8",
         maxBuffer: 10 * 1024 * 1024,
-        cwd: process.env.HOME || "/root",
+        cwd: process.env.HOME || os.homedir() || "/root",
       });
       return { stdout: stdout || "", stderr: "", exitCode: 0 };
     } catch (err: any) {
@@ -294,6 +303,7 @@ export function createConwayClient(options: ConwayClientOptions): ConwayClient {
   // ─── Credits ─────────────────────────────────────────────────
 
   const getCreditsBalance = async (): Promise<number> => {
+    if (!apiKey) return 0;
     const result = await request("GET", "/v1/credits/balance");
     return result.balance_cents ?? result.credits_cents ?? 0;
   };

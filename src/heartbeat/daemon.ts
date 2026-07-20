@@ -155,8 +155,19 @@ export function createHeartbeatDaemon(
   const isRunning = (): boolean => running;
 
   const forceRun = async (taskName: string): Promise<void> => {
+    const hasDirectInferenceKey = !!(config.openaiApiKey || config.anthropicApiKey);
+    const hasConwayKey = !!(process.env.CONWAY_API_KEY || config.conwayApiKey);
+
     const context = await import("./tick-context.js").then((m) =>
-      m.buildTickContext(rawDb, conway, heartbeatConfig, identity.address, identity.chainType),
+      m.buildTickContext(
+        rawDb,
+        conway,
+        heartbeatConfig,
+        identity.address,
+        identity.chainType,
+        hasDirectInferenceKey,
+        hasConwayKey,
+      ),
     );
     await scheduler.executeTask(taskName, context);
   };

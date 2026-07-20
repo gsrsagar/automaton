@@ -7,16 +7,18 @@
  */
 
 import type { ConwayClient, AutomatonDatabase } from "../types.js";
-import { gitInit, gitCommit, gitStatus, gitLog } from "./tools.js";
+import { gitInit, gitCommit, gitStatus, gitLog, escapeShellArg } from "./tools.js";
+import os from "node:os";
+import path from "node:path";
 
 const AUTOMATON_DIR = "~/.automaton";
 
 function resolveHome(p: string): string {
-  const home = process.env.HOME || "/root";
+  const home = process.env.HOME || os.homedir() || "/root";
   if (p.startsWith("~")) {
-    return `${home}${p.slice(1)}`;
+    return path.normalize(path.join(home, p.slice(1)));
   }
-  return p;
+  return path.resolve(p);
 }
 
 /**
@@ -30,11 +32,11 @@ export async function initStateRepo(
 
   // Check if already initialized
   const checkResult = await conway.exec(
-    `test -d ${dir}/.git && echo "exists" || echo "nope"`,
+    `cd ${escapeShellArg(dir)} && git rev-parse --is-inside-work-tree`,
     5000,
   );
 
-  if (checkResult.stdout.trim() === "exists") {
+  if (checkResult.exitCode === 0) {
     return;
   }
 
@@ -57,7 +59,7 @@ logs/
 
   // Configure git user
   await conway.exec(
-    `cd ${dir} && git config user.name "Automaton" && git config user.email "automaton@conway.tech"`,
+    `cd ${escapeShellArg(dir)} && git config user.name "Automaton" && git config user.email "automaton@conway.tech"`,
     5000,
   );
 

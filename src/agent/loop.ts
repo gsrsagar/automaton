@@ -124,6 +124,10 @@ export async function runAgentLoop(
   const budgetTracker = new InferenceBudgetTracker(db.raw, modelStrategyConfig);
   const inferenceRouter = new InferenceRouter(db.raw, modelRegistry, budgetTracker);
 
+  // Check if direct inference keys are configured (bypasses Conway credit requirements)
+  const hasDirectInferenceKey = !!(config.openaiApiKey || config.anthropicApiKey);
+  const hasConwayKey = !!(process.env.CONWAY_API_KEY || config.conwayApiKey);
+
   // Optional orchestration bootstrap (requires V9 goals/task tables)
   let planModeController: PlanModeController | undefined;
   let orchestrator: Orchestrator | undefined;
@@ -358,7 +362,7 @@ export async function runAgentLoop(
   onStateChange?.("waking");
 
   // Get financial state
-  let financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm");
+  let financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey);
 
   // Check if this is the first run
   const isFirstRun = db.getTurnCount() === 0;
@@ -426,7 +430,7 @@ export async function runAgentLoop(
       }
 
       // Refresh financial state periodically
-      financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm");
+      financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey);
 
       // Check survival tier
       // api_unreachable: creditsCents === -1 means API failed with no cache.
@@ -461,7 +465,7 @@ export async function runAgentLoop(
                 log(config, `[AUTO-TOPUP] Bought $${topupResult.amountUsd} credits from USDC mid-loop`);
                 // Re-fetch financial state after topup so the rest of
                 // the turn sees the updated balance.
-                financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm");
+                financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey);
               }
             } catch (err: any) {
               logger.warn(`Inline auto-topup failed: ${err.message}`);
@@ -948,9 +952,19 @@ async function getFinancialState(
   address: string,
   db?: AutomatonDatabase,
   chainType?: string,
+  hasDirectInferenceKey?: boolean,
+  hasConwayKey?: boolean,
 ): Promise<FinancialState> {
   let creditsCents = _lastKnownCredits;
   let usdcBalance = _lastKnownUsdc;
+
+  if (hasDirectInferenceKey && !hasConwayKey) {
+    return {
+      creditsCents: 1000,
+      usdcBalance: 0,
+      lastChecked: new Date().toISOString(),
+    };
+  }
 
   try {
     creditsCents = await conway.getCreditsBalance();
@@ -976,6 +990,16 @@ async function getFinancialState(
     }
     // No cache available -- return conservative non-zero sentinel
     logger.error("Balance API failed, no cache available");
+    // If direct inference keys (OpenAI/Anthropic) are configured, treat as
+    // financially healthy since inference won't use Conway credits anyway
+    if (hasDirectInferenceKey) {
+      logger.info("Direct inference keys configured, bypassing Conway credit requirements");
+      return {
+        creditsCents: 1000,
+        usdcBalance: 0,
+        lastChecked: new Date().toISOString(),
+      };
+    }
     return {
       creditsCents: -1,
       usdcBalance: -1,

@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     testTimeout: 30_000,
     teardownTimeout: 5_000,
+    setupFiles: ["src/pre-start.ts"],
     include: ["src/__tests__/**/*.test.ts"],
     coverage: {
       provider: "v8",
