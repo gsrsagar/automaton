@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -292,6 +292,7 @@ describe("orchestration/LocalWorkerPool harness integration", () => {
       maxRetries: 0,
     });
 
+    const homeSpy = vi.spyOn(os, "homedir").mockReturnValue(tempHome);
     const originalHome = process.env.HOME;
     process.env.HOME = tempHome;
     try {
@@ -308,6 +309,7 @@ describe("orchestration/LocalWorkerPool harness integration", () => {
       await (pool as any).runWorker("worker-test", task, new AbortController().signal);
     } finally {
       process.env.HOME = originalHome;
+      homeSpy.mockRestore();
     }
 
     const row = getTaskById(db, task.id);

@@ -204,6 +204,14 @@ async function run(): Promise<void> {
     process.exit(1);
   }
 
+  // Propagate direct API keys to env so ProviderRegistry picks them up
+  if (config.openaiApiKey && !process.env.OPENAI_API_KEY) {
+    process.env.OPENAI_API_KEY = config.openaiApiKey;
+  }
+  if (config.anthropicApiKey && !process.env.ANTHROPIC_API_KEY) {
+    process.env.ANTHROPIC_API_KEY = config.anthropicApiKey;
+  }
+
   // Initialize database
   const dbPath = resolvePath(config.dbPath);
   const db = createDatabase(dbPath);

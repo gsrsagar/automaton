@@ -3213,6 +3213,54 @@ Model: ${ctx.inference.getDefaultModel()}
         return lines.join("\n");
       },
     },
+
+    // === Creator Communication Tool ===
+    {
+      name: "send_user_message",
+      description:
+        "Send a message to your creator/user via the dashboard chat. " +
+        "Use this to ask questions, request input, report status, or share findings. " +
+        "The user will see it in the chat and can reply.",
+      category: "communication" as ToolCategory,
+      riskLevel: "safe" as RiskLevel,
+      parameters: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            description: "The message to send to the user",
+          },
+        },
+        required: ["message"],
+      },
+      execute: async (args, ctx) => {
+        const message = (args.message as string || "").trim();
+        if (!message) return "Error: message cannot be empty.";
+
+        const agentMsg = {
+          id: `agent-msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          role: "agent",
+          content: message,
+          ts: Date.now(),
+          fromAgent: true,
+        };
+
+        // Store in kv table so the dashboard can pick it up
+        const key = `chat_response_${agentMsg.id}`;
+        ctx.db.setKV(key, JSON.stringify(agentMsg));
+
+        // Also insert into inbox_messages for persistence (marked as processed)
+        try {
+          const walletAddr = ctx.identity.address || "0x0000000000000000000000000000000000000000";
+          ctx.db.raw.prepare(
+            `INSERT INTO inbox_messages (id, from_address, to_address, content, received_at, processed_at, status)
+             VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), 'processed')`
+          ).run(agentMsg.id, walletAddr, "creator", message);
+        } catch { /* ignore if table doesn't exist */ }
+
+        return `Message sent to user: "${message.slice(0, 80)}${message.length > 80 ? '...' : ''}"`;
+      },
+    },
   ];
 }
 

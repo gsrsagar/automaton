@@ -171,15 +171,20 @@ export function isProtectedFile(filePath: string): boolean {
 
   // Check against blocked directory patterns using path-segment matching
   for (const pattern of BLOCKED_DIRECTORY_PATTERNS) {
-    // Check if any path segment matches the blocked directory
-    if (resolved.includes(path.sep + pattern + path.sep) ||
-        resolved.endsWith(path.sep + pattern) ||
-        resolved === pattern) {
-      return true;
-    }
-    // Handle absolute patterns like /etc/systemd
-    if (pattern.startsWith("/") && resolved.startsWith(pattern)) {
-      return true;
+    const normalizedPattern = pattern.startsWith("/")
+      ? path.resolve(pattern)
+      : pattern;
+
+    if (normalizedPattern.includes(path.sep) || normalizedPattern.startsWith(path.sep)) {
+      if (resolved === normalizedPattern || resolved.startsWith(normalizedPattern + path.sep)) {
+        return true;
+      }
+    } else {
+      if (resolved.includes(path.sep + normalizedPattern + path.sep) ||
+          resolved.endsWith(path.sep + normalizedPattern) ||
+          resolved === normalizedPattern) {
+        return true;
+      }
     }
   }
 

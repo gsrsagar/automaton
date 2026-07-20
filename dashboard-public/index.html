@@ -140,9 +140,10 @@ document.querySelectorAll('.sidebar-tab').forEach(tab => {
 });
 
 // ─── Chat ──────────────────────────────────────────────────────
-function addChatMsg(role, content, time) {
+function addChatMsg(role, content, time, msgId) {
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
+  if (msgId) div.setAttribute('data-msg-id', msgId);
   div.innerHTML = escapeHtml(content);
   if (time) {
     const ts = document.createElement('div');
@@ -271,6 +272,20 @@ function addLogLine(line) {
 }
 
 // ─── Fetch all data ────────────────────────────────────────────
+let lastAgentMsgTs = 0;
+async function fetchAgentMessages() {
+  try {
+    const res = await fetch(`/api/chat/agent-messages?since=${lastAgentMsgTs}`);
+    const msgs = await res.json();
+    for (const msg of msgs) {
+      if (msg.ts > lastAgentMsgTs) lastAgentMsgTs = msg.ts;
+      // Don't re-add messages already in the chat
+      if (document.querySelector(`[data-msg-id="${msg.id}"]`)) continue;
+      addChatMsg('agent', msg.content, msg.ts, msg.id);
+    }
+  } catch {}
+}
+
 async function fetchAll() {
   try {
     const res = await fetch('/api/status');
@@ -287,6 +302,7 @@ async function fetchAll() {
       }
     }
   } catch {}
+  fetchAgentMessages();
 }
 
 // ─── WebSocket ─────────────────────────────────────────────────

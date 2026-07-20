@@ -402,12 +402,21 @@ export async function runAgentLoop(
       // Check if we should be sleeping
       const sleepUntil = db.getKV("sleep_until");
       if (sleepUntil && new Date(sleepUntil) > new Date()) {
-        log(config, `[SLEEP] Sleeping until ${sleepUntil}`);
-        // IMPORTANT: mark agent as sleeping so the outer runtime pauses instead of immediately re-running.
-        db.setAgentState("sleeping");
-        onStateChange?.("sleeping");
-        running = false;
-        break;
+        // Don't sleep if there are pending inbox messages from the user
+        const pendingInbox = db.raw.prepare(
+          "SELECT 1 FROM inbox_messages WHERE status = 'received' LIMIT 1"
+        ).get();
+        if (pendingInbox) {
+          log(config, `[SLEEP] Sleep scheduled but pending inbox messages found. Processing inbox instead.`);
+          db.deleteKV("sleep_until");
+        } else {
+          log(config, `[SLEEP] Sleeping until ${sleepUntil}`);
+          // IMPORTANT: mark agent as sleeping so the outer runtime pauses instead of immediately re-running.
+          db.setAgentState("sleeping");
+          onStateChange?.("sleeping");
+          running = false;
+          break;
+        }
       }
 
       // Check for unprocessed inbox messages using the state machine:
@@ -557,15 +566,23 @@ export async function runAgentLoop(
           !hasSelfAssignedParentTask &&
           (orchestratorTick.agentsActive > 0 || localWorkersActive > 0)
         ) {
-          log(
-            config,
-            "[ORCHESTRATOR] All delegated work is active and no self-assigned parent task remains. Sleeping to avoid idle loop.",
-          );
-          db.setKV("sleep_until", new Date(Date.now() + 60_000).toISOString());
-          db.setAgentState("sleeping");
-          onStateChange?.("sleeping");
-          running = false;
-          break;
+          // Don't sleep if there are pending inbox messages from the user
+          const pendingInbox = db.raw.prepare(
+            "SELECT 1 FROM inbox_messages WHERE status = 'received' LIMIT 1"
+          ).get();
+          if (pendingInbox) {
+            log(config, "[ORCHESTRATOR] Active agents but pending inbox messages. Processing inbox instead of sleeping.");
+          } else {
+            log(
+              config,
+              "[ORCHESTRATOR] All delegated work is active and no self-assigned parent task remains. Sleeping to avoid idle loop.",
+            );
+            db.setKV("sleep_until", new Date(Date.now() + 60_000).toISOString());
+            db.setAgentState("sleeping");
+            onStateChange?.("sleeping");
+            running = false;
+            break;
+          }
         }
 
         if (

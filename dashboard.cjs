@@ -123,6 +123,26 @@ app.get("/api/chat/history", (req, res) => {
   res.json(chatHistory.slice(-100));
 });
 
+// Agent-to-user messages from kv table
+let lastAgentMsgCheck = 0;
+app.get("/api/chat/agent-messages", (req, res) => {
+  try {
+    const since = parseInt(req.query.since || "0", 10);
+    const rows = db.prepare(
+      `SELECT key, value FROM kv WHERE key LIKE 'chat_response_%'`
+    ).all();
+    const messages = rows
+      .map((r) => {
+        try { return JSON.parse(r.value); } catch { return null; }
+      })
+      .filter((m) => m && m.ts > since)
+      .sort((a, b) => a.ts - b.ts);
+    res.json(messages);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
 app.get("/api/chat/pending/:msgId", (req, res) => {
   const pending = pendingResponses.get(req.params.msgId);
   if (!pending) return res.json({ found: false });
@@ -185,6 +205,73 @@ app.get("/api/chat/response", (req, res) => {
   }
 });
 
+// ─── Polymarket Simulator ──────────────────────────────────────
+const polymarketState = {
+  signals: [
+    { id: 1, market: "US Presidential Election 2026", recommendation: "BUY YES (Trump)", confidence: "87%", volume: "$14.2M", time: "Just now" },
+    { id: 2, market: "Fed Interest Rate Cut in September", recommendation: "BUY NO (50bps)", confidence: "62%", volume: "$8.4M", time: "2m ago" },
+    { id: 3, market: "US Inflation falls below 2.5% in Q3", recommendation: "BUY YES", confidence: "78%", volume: "$3.1M", time: "15m ago" },
+    { id: 4, market: "Solana ETF approved in 2026", recommendation: "BUY YES", confidence: "54%", volume: "$11.9M", time: "1h ago" },
+  ],
+  positions: [
+    { id: 1, market: "US Presidential Election 2026 (Trump)", contract: "YES", qty: 25000, avgPrice: "$0.54", currentPrice: "$0.59", pnl: "+$1,250.00 (+9.2%)", status: "open" },
+    { id: 2, market: "Fed Interest Rate Cut in September", contract: "NO", qty: 10000, avgPrice: "$0.42", currentPrice: "$0.45", pnl: "+$300.00 (+7.1%)", status: "open" },
+  ],
+  logs: [
+    { ts: Date.now() - 5000, type: "info", message: "[Polymarket] Signal detected: Sentiment index for US President exceeds 60%." },
+    { ts: Date.now() - 25000, type: "trade", message: "[Polymarket] Executed BUY order: 5,000 Trump YES contracts at $0.58." },
+    { ts: Date.now() - 120000, type: "info", message: "[Polymarket] Position updated: Fed cut NO contracts current price rose to $0.45." },
+  ]
+};
+
+// Periodically update the simulator to make it dynamic
+setInterval(() => {
+  try {
+    for (const pos of polymarketState.positions) {
+      const curr = parseFloat(pos.currentPrice.replace("$", ""));
+      const change = (Math.random() - 0.5) * 0.02;
+      const next = Math.max(0.01, Math.min(0.99, curr + change)).toFixed(2);
+      pos.currentPrice = `$${next}`;
+
+      const avg = parseFloat(pos.avgPrice.replace("$", ""));
+      const diff = (parseFloat(next) - avg) * pos.qty;
+      const pct = ((parseFloat(next) - avg) / avg * 100).toFixed(1);
+      pos.pnl = `${diff >= 0 ? "+" : ""}$${diff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${diff >= 0 ? "+" : ""}${pct}%)`;
+    }
+
+    if (Math.random() > 0.8) {
+      const markets = [
+        "AI Safety Treaty signed in 2026",
+        "Apple announces LLM agent for macOS",
+        "SpaceX Starship orbital catch success",
+        "Ethereum gas fees hit all-time low"
+      ];
+      const recs = ["BUY YES", "BUY NO"];
+      const market = markets[Math.floor(Math.random() * markets.length)];
+      const rec = recs[Math.floor(Math.random() * recs.length)];
+      const conf = Math.floor(60 + Math.random() * 35) + "%";
+      const vol = "$" + (Math.random() * 5 + 1).toFixed(1) + "M";
+
+      polymarketState.signals.unshift({
+        id: Date.now(),
+        market,
+        recommendation: rec,
+        confidence: conf,
+        volume: vol,
+        time: "Just now"
+      });
+      if (polymarketState.signals.length > 5) polymarketState.signals.pop();
+
+      polymarketState.logs.unshift({
+        ts: Date.now(),
+        type: "info",
+        message: `[Polymarket] Signal detected: AI Agent identified trade opportunity on '${market}'.`
+      });
+      if (polymarketState.logs.length > 15) polymarketState.logs.pop();
+    }
+  } catch {}
+}, 5000);
+
 // ─── Status API ────────────────────────────────────────────────
 function getIdentity() {
   const identity = {};
@@ -232,10 +319,20 @@ app.get("/api/status", (req, res) => {
       }
     } catch {}
 
+    let currentModel = "gpt-5-mini";
+    try {
+      const configPath = path.join(AUTOMATON_DIR, "automaton.json");
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+        currentModel = config.modelStrategy?.inferenceModel || "gpt-5-mini";
+      }
+    } catch {}
+
     res.json({
       identity, turns, recentTurns, goals, toolCalls, recentLogs,
       walletAddress: identity.address || "unknown",
       name: identity.name || "unknown",
+      currentModel
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -245,6 +342,35 @@ app.get("/api/status", (req, res) => {
 app.get("/api/goals", (req, res) => {
   try { res.json(db.prepare("SELECT * FROM goals ORDER BY created_at DESC").all()); }
   catch { res.json([]); }
+});
+
+app.get("/api/polymarket", (req, res) => {
+  res.json(polymarketState);
+});
+
+app.post("/api/settings/model", (req, res) => {
+  try {
+    const { model } = req.body;
+    if (!model) return res.status(400).json({ error: "model parameter required" });
+
+    const configPath = path.join(AUTOMATON_DIR, "automaton.json");
+    let config = {};
+    if (fs.existsSync(configPath)) {
+      try {
+        config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      } catch {}
+    }
+
+    config.modelStrategy = config.modelStrategy || {};
+    config.modelStrategy.inferenceModel = model;
+    config.modelStrategy.lowComputeModel = model;
+    config.modelStrategy.criticalModel = model;
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    res.json({ ok: true, model });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── WebSocket ─────────────────────────────────────────────────
