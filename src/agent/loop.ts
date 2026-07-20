@@ -626,7 +626,23 @@ export async function runAgentLoop(
       const survivalTier = getSurvivalTier(financial.creditsCents);
       log(config, `[THINK] Routing inference (tier: ${survivalTier}, model: ${inference.getDefaultModel()})...`);
 
-      const inferenceTools = toolsToInferenceFormat(tools);
+      // Limit tools for small models — they can't handle 78 tools
+      // When there's an inbox message, only send send_user_message
+      const isSmallModel = /:(\d+)b?/.test(inference.getDefaultModel()) && (() => {
+        const match = inference.getDefaultModel().match(/:(\d+\.?\d*)b/);
+        return match ? parseFloat(match[1]) < 2 : false;
+      })();
+      const hasInbox = currentInput?.source === "inbox" || currentInput?.source === "agent";
+      const inferenceTools = toolsToInferenceFormat(
+        isSmallModel
+          ? hasInbox
+            ? tools.filter((t) => t.name === "send_user_message")
+            : tools.filter((t) =>
+                ["send_user_message", "create_goal", "list_goals", "orchestrator_status", "check_credits", "sleep"].includes(t.name)
+              )
+          : tools
+      );
+      log(config, `[TOOLS] Sending ${inferenceTools.length} tools to model (small=${isSmallModel}, inbox=${hasInbox})`);
       const routerResult = await inferenceRouter.route(
         {
           messages: messages,
@@ -724,6 +740,32 @@ export async function runAgentLoop(
         }
       });
       onTurnComplete?.(turn);
+
+      // ── Fallback: create agent message from text if model didn't call send_user_message ──
+      // When there's an inbox message but the model generated text instead of calling
+      // send_user_message (common with small models), create an agent message from the text.
+      if (currentInput && (currentInput.source === "inbox" || currentInput.source === "agent")) {
+        const calledSendUserMessage = turn.toolCalls.some((tc) => tc.name === "send_user_message");
+        if (!calledSendUserMessage && turn.thinking && turn.thinking.trim().length > 0) {
+          const fallbackMsg = {
+            id: `agent-msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            role: "agent",
+            content: turn.thinking.trim(),
+            ts: Date.now(),
+            fromAgent: true,
+          };
+          const key = `chat_response_${fallbackMsg.id}`;
+          db.setKV(key, JSON.stringify(fallbackMsg));
+          try {
+            const walletAddr = identity?.address || "0x0000000000000000000000000000000000000000";
+            db.raw.prepare(
+              `INSERT INTO inbox_messages (id, from_address, to_address, content, received_at, processed_at, status)
+               VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), 'processed')`
+            ).run(fallbackMsg.id, walletAddr, "creator", turn.thinking.trim());
+          } catch { /* ignore */ }
+          log(config, `[FALLBACK] Created agent message from text: "${turn.thinking.slice(0, 80)}..."`);
+        }
+      }
 
       // Phase 2.2: Post-turn memory ingestion (non-blocking)
       try {

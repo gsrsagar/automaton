@@ -96,6 +96,9 @@ export function createInferenceClient(
     if (tools && tools.length > 0) {
       body.tools = tools;
       body.tool_choice = "auto";
+      console.log(`[INFERENCE] Sending ${tools.length} tools to ${model}: ${tools.map((t: any) => t.function?.name).join(", ")}`);
+    } else {
+      console.log(`[INFERENCE] No tools being sent to ${model}`);
     }
 
     if (backend === "anthropic") {

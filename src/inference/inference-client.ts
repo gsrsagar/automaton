@@ -228,7 +228,7 @@ export class UnifiedInferenceClient {
     params: SharedChatParams,
   ): Promise<UnifiedInferenceResult> {
     const startedAt = Date.now();
-    const payload = this.buildChatCompletionRequest(model.id, params);
+    const payload = this.buildChatCompletionRequest(model, params);
     if (params.stream) {
       const stream = await client.chat.completions.create({
         ...payload,
@@ -271,9 +271,9 @@ export class UnifiedInferenceClient {
     });
   }
 
-  private buildChatCompletionRequest(modelId: string, params: SharedChatParams): Record<string, unknown> {
+  private buildChatCompletionRequest(model: ModelConfig, params: SharedChatParams): Record<string, unknown> {
     const payload: Record<string, unknown> = {
-      model: modelId,
+      model: model.id,
       messages: params.messages.map((message) => ({
         role: message.role,
         content: message.content,
@@ -291,11 +291,11 @@ export class UnifiedInferenceClient {
       payload.max_tokens = params.maxTokens;
     }
 
-    if (params.tools && params.tools.length > 0) {
+    if (params.tools && params.tools.length > 0 && model.supportsTools) {
       payload.tools = params.tools;
     }
 
-    if (params.toolChoice !== undefined) {
+    if (params.toolChoice !== undefined && model.supportsTools) {
       payload.tool_choice = params.toolChoice;
     }
 

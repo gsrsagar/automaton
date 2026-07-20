@@ -77,8 +77,7 @@ export async function discoverOllamaModels(
       costPer1kOutput: 0,
       maxTokens: existing?.maxTokens ?? 4096,
       contextWindow: existing?.contextWindow ?? 8192,
-      // Most modern Ollama models support tools; default true
-      supportsTools: existing?.supportsTools ?? true,
+      supportsTools: existing?.supportsTools ?? modelSupportsTools(modelId),
       supportsVision: existing?.supportsVision ?? false,
       parameterStyle: "max_tokens",
       enabled: existing?.enabled ?? true,
@@ -104,4 +103,12 @@ function formatDisplayName(modelId: string): string {
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
   return tag && tag !== "latest" ? `${pretty} (${tag})` : pretty;
+}
+
+// Models that are known NOT to support tool calling in Ollama
+const NO_TOOL_MODELS = ["gemma3", "smollm2", "phi3", "gemma2"];
+
+function modelSupportsTools(modelId: string): boolean {
+  const family = modelId.split(":")[0].toLowerCase();
+  return !NO_TOOL_MODELS.includes(family);
 }

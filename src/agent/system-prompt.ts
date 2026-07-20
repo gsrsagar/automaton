@@ -420,12 +420,11 @@ YOUR COMMUNICATION TOOLS:
 
 DECISION TREE (follow on EVERY turn):
 
-0. IF YOU HAVE A PENDING INBOX MESSAGE FROM YOUR CREATOR:
-   - First, use send_user_message to acknowledge and respond to the user.
-   - Answer their questions, provide status, or ask for clarification.
-   - THEN decide if you need to take further action (create_goal, etc.).
-   - The user is waiting for your reply — ALWAYS respond via send_user_message
-     when you receive a direct message from them.
+0. **IF YOUR CREATOR SENT YOU A MESSAGE (pending inbox message):**
+   You MUST immediately call the send_user_message tool to reply.
+   Do this FIRST, before anything else. Do NOT call create_goal or other tools.
+   Just reply to the user with send_user_message.
+   Example: send_user_message(message="Hello! I received your message...")
 
 1. CHECK YOUR EXECUTION PHASE by calling orchestrator_status (or reading the
    orchestrator status block injected into your context).

@@ -9,515 +9,279 @@
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#07070a;--panel:rgba(16,16,26,0.75);--panel-solid:#10101a;
-  --border:rgba(255,255,255,0.08);--accent:#6c5ce7;--cyan:#00cec9;
-  --text:#e2e8f0;--text-dim:#94a3b8;--text-dark:#64748b;
-  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;
-}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);background-image:radial-gradient(at 0% 0%,rgba(108,92,231,0.1) 0px,transparent 50%),radial-gradient(at 100% 100%,rgba(0,206,201,0.05) 0px,transparent 50%);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+:root{--bg:#07070a;--panel:#0d0d14;--border:rgba(255,255,255,0.07);--accent:#6c5ce7;--cyan:#00cec9;--text:#e2e8f0;--dim:#94a3b8;--dark:#64748b;--green:#10b981;--red:#ef4444;--yellow:#f59e0b}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text)}
 
-.header{height:56px;background:rgba(10,10,16,0.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;flex-shrink:0}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-logo{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--cyan));border-radius:7px;display:flex;align-items:center;justify-content:center;animation:logo-rotate 6s infinite linear}
-.brand-logo::after{content:'';width:12px;height:12px;border:2px solid #fff;border-radius:3px}
-@keyframes logo-rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.header h1{font-size:15px;font-weight:800;background:linear-gradient(135deg,#fff,#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header-right{display:flex;align-items:center;gap:14px}
-.status-badge{display:flex;align-items:center;gap:6px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:5px 10px;border-radius:16px;font-size:10px;font-weight:600;color:var(--green)}
-.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4)}
-.credit-badge{font-size:10px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace}
+/* ── Header ─────────────────────────────────── */
+.hdr{height:48px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:50}
+.logo{width:24px;height:24px;background:linear-gradient(135deg,var(--accent),var(--cyan));border-radius:6px;flex-shrink:0}
+.hdr h1{font-size:13px;font-weight:800;background:linear-gradient(135deg,#fff,#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:10px}
 
-.model-selector{position:relative}
-.model-btn{display:flex;align-items:center;gap:6px;background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.3);padding:5px 12px;border-radius:16px;font-size:10px;font-weight:600;color:var(--accent);cursor:pointer;transition:all .2s;font-family:'Fira Code',monospace}
-.model-btn:hover{background:rgba(108,92,231,0.2);border-color:var(--accent)}
-.model-btn .arrow{font-size:8px;transition:transform .2s}
-.model-btn.open .arrow{transform:rotate(180deg)}
-.model-dropdown{position:absolute;top:100%;right:0;margin-top:6px;background:var(--panel-solid);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:260px;display:none;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
-.model-dropdown.show{display:block}
-.model-option{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:all .15s;font-size:11px}
-.model-option:hover{background:rgba(108,92,231,0.1)}
-.model-option.active{background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3)}
-.model-option .model-name{font-weight:600;color:var(--text)}
-.model-option .model-info{font-size:9px;color:var(--text-dim)}
-.model-option .model-free{font-size:8px;font-weight:700;color:var(--green);background:rgba(16,185,129,0.1);padding:1px 5px;border-radius:3px}
-.model-option .model-installed{font-size:8px;color:var(--text-dark)}
-.model-option .model-pull{font-size:8px;color:var(--accent);cursor:pointer}
-.model-option .model-pull:hover{text-decoration:underline}
-.model-section{font-size:8px;color:var(--text-dark);text-transform:uppercase;padding:6px 10px 3px;font-weight:700;letter-spacing:.5px}
+/* Model selector */
+.mdl-sel{position:relative}
+.mdl-btn{display:flex;align-items:center;gap:5px;background:rgba(108,92,231,0.12);border:1px solid rgba(108,92,231,0.3);padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600;color:var(--accent);cursor:pointer;font-family:'Fira Code',monospace;white-space:nowrap}
+.mdl-btn:hover{background:rgba(108,92,231,0.2)}
+.mdl-dd{position:absolute;top:calc(100% + 4px);right:0;width:280px;background:#15151f;border:1px solid var(--border);border-radius:10px;padding:4px;display:none;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,0.6);max-height:400px;overflow-y:auto}
+.mdl-dd.open{display:block}
+.mdl-sec{font-size:8px;color:var(--dark);text-transform:uppercase;padding:6px 8px 2px;font-weight:700;letter-spacing:.5px}
+.mdl-opt{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:background .1s}
+.mdl-opt:hover{background:rgba(108,92,231,0.08)}
+.mdl-opt.on{background:rgba(108,92,231,0.15)}
+.mdl-opt .n{font-weight:600;flex:1}
+.mdl-opt .tag{font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;background:rgba(16,185,129,0.12);color:var(--green)}
+.mdl-opt .pull{font-size:8px;color:var(--accent);cursor:pointer}
+.mdl-opt .pull:hover{text-decoration:underline}
 
-.main{display:grid;grid-template-columns:280px 1fr;flex:1;overflow:hidden;height:calc(100vh - 56px)}
+.badge{font-size:9px;font-weight:700;color:var(--green);font-family:'Fira Code',monospace}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.conn{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:600;color:var(--green);background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);padding:3px 8px;border-radius:10px}
 
-.sidebar{background:var(--panel);backdrop-filter:blur(16px);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.sidebar-section{padding:16px;border-bottom:1px solid var(--border)}
-.agent-profile{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.agent-avatar{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:14px}
-.agent-info h3{font-size:13px;font-weight:700}
-.agent-info p{font-size:10px;color:var(--text-dim);font-family:'Fira Code',monospace;cursor:pointer}
-.agent-info p:hover{color:var(--cyan)}
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.stat{text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px}
-.stat .val{font-size:14px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace}
-.stat .lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;margin-top:2px;font-weight:600}
+/* ── Main Grid ──────────────────────────────── */
+.main{display:grid;grid-template-columns:240px 1fr;height:calc(100vh - 48px)}
 
-.sidebar-tabs{display:flex;border-bottom:1px solid var(--border)}
-.tab-btn{flex:1;background:transparent;border:none;color:var(--text-dim);padding:10px 4px;font-size:9px;font-weight:700;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
-.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
-.sidebar-content{flex:1;overflow-y:auto;padding:12px}
-.tab-pane{display:none}
-.tab-pane.active{display:block}
+/* ── Sidebar ────────────────────────────────── */
+.side{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.side-top{padding:14px;border-bottom:1px solid var(--border)}
+.prof{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.av{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:12px;flex-shrink:0}
+.prof .nm{font-size:12px;font-weight:700}
+.prof .wa{font-size:9px;color:var(--dim);font-family:'Fira Code',monospace;cursor:pointer}
+.prof .wa:hover{color:var(--cyan)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.st{text-align:center;padding:6px 2px;background:rgba(255,255,255,0.015);border:1px solid var(--border);border-radius:5px}
+.st .v{font-size:13px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace}
+.st .l{font-size:7px;color:var(--dim);text-transform:uppercase;margin-top:1px;font-weight:600}
 
-.tool-card{background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;font-family:'Fira Code',monospace;font-size:10px}
-.tool-card .name{color:var(--cyan);font-weight:600;margin-bottom:3px}
-.tool-card .args{color:var(--text-dim);font-size:9px;background:rgba(0,0,0,0.15);padding:4px;border-radius:3px;margin:4px 0;overflow-x:auto}
-.tool-card .result{color:var(--green);font-size:9px;max-height:50px;overflow-y:auto}
-.goal-card{background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:6px}
-.goal-card .title{font-size:11px;font-weight:700;margin-bottom:4px}
-.goal-badge{display:inline-block;font-size:8px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:rgba(0,206,201,0.1);color:var(--cyan)}
-.log-line{font-family:'Fira Code',monospace;font-size:9px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.01);white-space:pre-wrap;word-break:break-all}
+.stabs{display:flex;border-bottom:1px solid var(--border)}
+.stab{flex:1;background:0;border:0;color:var(--dim);padding:8px 2px;font-size:8px;font-weight:700;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.stab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.scont{flex:1;overflow-y:auto;padding:10px}
+.tp{display:none}.tp.on{display:block}
+.tc{background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:5px;padding:6px;margin-bottom:5px;font-family:'Fira Code',monospace;font-size:9px}
+.tc .nm{color:var(--cyan);font-weight:600;margin-bottom:2px}
+.tc .ar{color:var(--dim);font-size:8px;background:rgba(0,0,0,0.2);padding:3px;border-radius:2px;margin:3px 0;overflow-x:auto;white-space:nowrap}
+.tc .rs{color:var(--green);font-size:8px;max-height:40px;overflow-y:auto}
+.gc{background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:5px;padding:8px;margin-bottom:5px}
+.gc .ti{font-size:10px;font-weight:700;margin-bottom:3px}
+.gb{display:inline-block;font-size:7px;font-weight:700;text-transform:uppercase;padding:1px 5px;border-radius:3px;background:rgba(0,206,201,0.08);color:var(--cyan)}
+.gl{font-family:'Fira Code',monospace;font-size:8px;padding:1px 0;border-bottom:1px solid rgba(255,255,255,0.01);white-space:pre-wrap;word-break:break-all}
+.gl.err{color:var(--red)}.gl.wrn{color:var(--yellow)}.gl.inf{color:var(--dim)}
+.emp{text-align:center;color:var(--dark);font-size:9px;font-style:italic;padding:16px 8px}
 
-/* Chat Panel */
-.chat-panel{display:flex;flex-direction:column;height:100%;overflow:hidden}
-.chat-header{padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(10,10,16,0.5);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.chat-header h2{font-size:14px;font-weight:800}
-.chat-header .sub{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
-.chat-header .live{color:var(--cyan);font-weight:700;font-size:10px;font-family:'Fira Code',monospace}
+/* ── Chat ───────────────────────────────────── */
+.chat{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.ch-hdr{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ch-hdr h2{font-size:13px;font-weight:800}
+.ch-hdr .sub{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.ch-hdr .live{color:var(--cyan);font-weight:700;font-size:9px;font-family:'Fira Code',monospace}
 
-.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
-.chat-messages::-webkit-scrollbar{width:5px}
-.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.ch-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ch-msgs::-webkit-scrollbar{width:4px}
+.ch-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-.msg-wrap{display:flex;flex-direction:column;max-width:80%}
-.msg-wrap.user{align-self:flex-end;align-items:flex-end}
-.msg-wrap.agent{align-self:flex-start;align-items:flex-start}
-.msg-wrap.system{align-self:center;align-items:center}
-.msg-sender{font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:3px;letter-spacing:.5px}
-.msg-sender.user{color:var(--accent)}
-.msg-sender.agent{color:var(--cyan)}
-.msg-bubble{width:100%;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;animation:fadeIn .3s ease-out;white-space:pre-wrap;word-wrap:break-word}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.msg-bubble.user{background:linear-gradient(135deg,var(--accent),#5649c0);color:#fff;border-bottom-right-radius:3px;box-shadow:0 3px 10px rgba(108,92,231,0.2)}
-.msg-bubble.agent{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-bottom-left-radius:3px}
-.msg-bubble.system{background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);color:var(--yellow);font-size:10px;border-radius:16px;padding:5px 14px;text-align:center;max-width:90%}
-.msg-bubble.model-switch{background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.3);color:var(--accent);font-size:11px;border-radius:10px;padding:10px 14px;text-align:center}
-.msg-time{font-size:8px;color:rgba(255,255,255,0.3);margin-top:4px;text-align:right}
-.msg-bubble.agent .msg-time{color:var(--text-dark)}
-.msg-bubble strong{color:#fff;font-weight:700}
+.mw{display:flex;flex-direction:column;max-width:80%}
+.mw.u{align-self:flex-end;align-items:flex-end}
+.mw.a{align-self:flex-start;align-items:flex-start}
+.mw.s{align-self:center;align-items:center}
+.ms{font-size:8px;font-weight:700;text-transform:uppercase;margin-bottom:2px;letter-spacing:.5px}
+.ms.u{color:var(--accent)}.ms.a{color:var(--cyan)}
+.mb{padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;animation:fi .2s ease-out;white-space:pre-wrap;word-wrap:break-word;width:100%}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.mb.u{background:linear-gradient(135deg,var(--accent),#5649c0);color:#fff;border-bottom-right-radius:2px}
+.mb.a{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-bottom-left-radius:2px}
+.mb.s{background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);color:var(--yellow);font-size:9px;border-radius:12px;padding:4px 12px;text-align:center;max-width:90%}
+.mb.ms-sw{background:rgba(108,92,231,0.06);border:1px solid rgba(108,92,231,0.2);color:var(--accent);font-size:10px;text-align:center}
+.mt{font-size:7px;color:rgba(255,255,255,0.25);margin-top:3px;text-align:right}
+.mb.a .mt{color:var(--dark)}
+.mb strong{color:#fff;font-weight:700}
 
-.thinking-dots{display:flex;gap:5px;align-items:center;height:10px;padding:4px 0}
-.thinking-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:think 1.4s infinite ease-in-out both}
-.thinking-dot:nth-child(1){animation-delay:-.32s}
-.thinking-dot:nth-child(2){animation-delay:-.16s}
-@keyframes think{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+.td{display:flex;gap:4px;align-items:center;height:8px;padding:3px 0}
+.td span{width:4px;height:4px;border-radius:50%;background:var(--cyan);animation:tk 1.2s infinite ease-in-out both}
+.td span:nth-child(1){animation-delay:-.3s}
+.td span:nth-child(2){animation-delay:-.15s}
+@keyframes tk{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
 
-.chat-input{padding:14px 20px;border-top:1px solid var(--border);background:rgba(10,10,16,0.6);display:flex;gap:10px;flex-shrink:0}
-.chat-input input{flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:all .2s}
-.chat-input input:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(108,92,231,0.15)}
-.send-btn{background:linear-gradient(135deg,var(--accent),#5649c0);color:#fff;border:none;border-radius:8px;padding:0 20px;font-weight:700;font-family:inherit;cursor:pointer;font-size:12px;transition:all .2s}
-.send-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(108,92,231,0.3)}
-.send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.ch-in{padding:10px 16px;border-top:1px solid var(--border);background:var(--panel);display:flex;gap:8px;flex-shrink:0}
+.ch-in input{flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:11px;outline:0;transition:border .15s}
+.ch-in input:focus{border-color:var(--accent)}
+.snd{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:0 16px;font-weight:700;font-family:inherit;cursor:pointer;font-size:11px;transition:all .15s}
+.snd:hover{background:#5649c0}
+.snd:disabled{opacity:.4;cursor:not-allowed}
 
-/* Model Switch Modal */
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1000}
-.modal-overlay.show{display:flex}
-.modal{background:var(--panel-solid);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 16px 64px rgba(0,0,0,0.5)}
-.modal h3{font-size:16px;font-weight:800;margin-bottom:4px}
-.modal p{font-size:11px;color:var(--text-dim);margin-bottom:16px}
-.modal .model-list{max-height:300px;overflow-y:auto;margin-bottom:16px}
-.modal .model-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .15s}
-.modal .model-item:hover{border-color:var(--accent);background:rgba(108,92,231,0.05)}
-.modal .model-item.selected{border-color:var(--accent);background:rgba(108,92,231,0.1)}
-.modal .model-item .left{display:flex;flex-direction:column;gap:2px}
-.modal .model-item .name{font-size:12px;font-weight:600}
-.modal .model-item .desc{font-size:9px;color:var(--text-dim)}
-.modal .model-item .badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px}
-.modal .model-item .badge.free{background:rgba(16,185,129,0.1);color:var(--green)}
-.modal .model-item .badge.paid{background:rgba(239,68,68,0.1);color:var(--red)}
-.modal .actions{display:flex;gap:8px;justify-content:flex-end}
-.modal .btn{padding:8px 16px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
-.modal .btn-primary{background:var(--accent);color:#fff}
-.modal .btn-primary:hover{background:#5649c0}
-.modal .btn-secondary{background:rgba(255,255,255,0.05);color:var(--text-dim);border:1px solid var(--border)}
-.modal .btn-secondary:hover{background:rgba(255,255,255,0.1)}
-
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* ── Modal ──────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:500}
+.modal-bg.on{display:flex}
+.modal{background:#15151f;border:1px solid var(--border);border-radius:12px;padding:20px;max-width:360px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,0.5)}
+.modal h3{font-size:14px;font-weight:800;margin-bottom:3px}
+.modal p{font-size:10px;color:var(--dim);margin-bottom:14px}
+.modal .ml{max-height:260px;overflow-y:auto;margin-bottom:14px}
+.modal .mi{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;transition:all .1s}
+.modal .mi:hover{border-color:var(--accent);background:rgba(108,92,231,0.04)}
+.modal .mi.sel{border-color:var(--accent);background:rgba(108,92,231,0.1)}
+.modal .mi .n{font-size:11px;font-weight:600}
+.modal .mi .d{font-size:8px;color:var(--dim)}
+.modal .mi .b{font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(16,185,129,0.1);color:var(--green)}
+.modal .acts{display:flex;gap:6px;justify-content:flex-end}
+.modal .btn{padding:6px 14px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:0;transition:all .1s}
+.modal .bp{background:var(--accent);color:#fff}.modal .bp:hover{background:#5649c0}
+.modal .bs{background:rgba(255,255,255,0.04);color:var(--dim);border:1px solid var(--border)}.modal .bs:hover{background:rgba(255,255,255,0.08)}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="brand">
-    <div class="brand-logo"></div>
-    <h1>Conway Automaton</h1>
-  </div>
-  <div class="header-right">
-    <div class="model-selector">
-      <div class="model-btn" id="model-btn" onclick="toggleModelDropdown()">
-        <span id="current-model-label">Loading...</span>
-        <span class="arrow">▼</span>
-      </div>
-      <div class="model-dropdown" id="model-dropdown">
-        <div class="model-section">Free Models (Ollama)</div>
-        <div id="model-list">Loading...</div>
-      </div>
+<div class="hdr">
+  <div class="logo"></div>
+  <h1>Conway Automaton</h1>
+  <div class="hdr-r">
+    <div class="mdl-sel">
+      <div class="mdl-btn" id="mdl-btn" onclick="toggleDD()"><span id="cur-mdl">Loading...</span> <span style="font-size:7px">▼</span></div>
+      <div class="mdl-dd" id="mdl-dd"></div>
     </div>
-    <div class="credit-badge">Credits: FREE</div>
-    <div class="status-badge">
-      <div class="status-dot"></div>
-      <span id="status-text">Connecting</span>
-    </div>
+    <span class="badge">FREE</span>
+    <div class="conn"><div class="dot"></div><span id="st-txt">Connecting</span></div>
   </div>
 </div>
 
 <div class="main">
-  <div class="sidebar">
-    <div class="sidebar-section">
-      <div class="agent-profile">
-        <div class="agent-avatar" id="avatar">G</div>
-        <div class="agent-info">
-          <h3 id="agent-name">gsr</h3>
-          <p id="wallet-addr" onclick="copyAddr()" title="Click to copy">0x0000...0000</p>
-        </div>
+  <div class="side">
+    <div class="side-top">
+      <div class="prof">
+        <div class="av" id="av">G</div>
+        <div><div class="nm" id="anm">gsr</div><div class="wa" id="waddr" onclick="copyAddr()">0x0000...0000</div></div>
       </div>
-      <div class="stats-row">
-        <div class="stat"><div class="val" id="stat-turns">0</div><div class="lbl">Turns</div></div>
-        <div class="stat"><div class="val" id="stat-goals">0</div><div class="lbl">Goals</div></div>
-        <div class="stat"><div class="val" id="stat-tools">0</div><div class="lbl">Tools</div></div>
+      <div class="stats">
+        <div class="st"><div class="v" id="s-turns">0</div><div class="l">Turns</div></div>
+        <div class="st"><div class="v" id="s-goals">0</div><div class="l">Goals</div></div>
+        <div class="st"><div class="v" id="s-tools">0</div><div class="l">Tools</div></div>
       </div>
     </div>
-    <div class="sidebar-tabs">
-      <button class="tab-btn active" onclick="switchTab('goals')">Goals</button>
-      <button class="tab-btn" onclick="switchTab('tools')">Tools</button>
-      <button class="tab-btn" onclick="switchTab('logs')">Logs</button>
+    <div class="stabs">
+      <button class="stab on" onclick="stab('goals')">Goals</button>
+      <button class="stab" onclick="stab('tools')">Tools</button>
+      <button class="stab" onclick="stab('logs')">Logs</button>
     </div>
-    <div class="sidebar-content">
-      <div class="tab-pane active" id="pane-goals"><div class="empty">No goals</div></div>
-      <div class="tab-pane" id="pane-tools"><div class="empty">No tools</div></div>
-      <div class="tab-pane" id="pane-logs"><div class="empty">No logs</div></div>
+    <div class="scont">
+      <div class="tp on" id="p-goals"><div class="emp">No goals</div></div>
+      <div class="tp" id="p-tools"><div class="emp">No tools</div></div>
+      <div class="tp" id="p-logs"><div class="emp">No logs</div></div>
     </div>
   </div>
 
-  <div class="chat-panel">
-    <div class="chat-header">
-      <div>
-        <h2>Chat with Agent</h2>
-        <div class="sub">Send instructions, ask questions, get responses</div>
-      </div>
+  <div class="chat">
+    <div class="ch-hdr">
+      <div><h2>Chat with Agent</h2><div class="sub">Send instructions, get responses</div></div>
       <div class="live">LIVE</div>
     </div>
-    <div class="chat-messages" id="chat-messages">
-      <div class="msg-wrap system"><div class="msg-bubble system">Welcome! Type a message below to interact with your agent. All models are FREE (running locally via Ollama).</div></div>
+    <div class="ch-msgs" id="ch-msgs">
+      <div class="mw s"><div class="mb s">All models are FREE (local Ollama). Type a message to talk to your agent.</div></div>
     </div>
-    <div class="chat-input">
-      <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off" autofocus>
-      <button class="send-btn" id="send-btn" onclick="sendMsg()">Send</button>
+    <div class="ch-in">
+      <input type="text" id="chin" placeholder="Type message..." autocomplete="off" autofocus>
+      <button class="snd" id="snd" onclick="send()">Send</button>
     </div>
   </div>
 </div>
 
-<!-- Model Switch Modal -->
-<div class="modal-overlay" id="model-modal">
+<div class="modal-bg" id="mmdl">
   <div class="modal">
     <h3>Switch Model</h3>
-    <p>Select a free model for the agent to use. The agent will pause briefly while switching.</p>
-    <div class="model-list" id="modal-model-list"></div>
-    <div class="actions">
-      <button class="btn btn-secondary" onclick="closeModelModal()">Cancel</button>
-      <button class="btn btn-primary" id="modal-switch-btn" onclick="confirmModelSwitch()">Switch Model</button>
+    <p>Select a free model. Agent will use it on next inference.</p>
+    <div class="ml" id="mmdl-list"></div>
+    <div class="acts">
+      <button class="btn bs" onclick="closeMdl()">Cancel</button>
+      <button class="btn bp" onclick="confirmSwitch()">Switch</button>
     </div>
   </div>
 </div>
 
 <script>
 const $=s=>document.querySelector(s);
-const chatEl=$('#chat-messages');
-let waiting=false;
-let availableModels=[];
-let currentModel='';
-let selectedModalModel='';
+const ch=$('#ch-msgs');
+let wait=false,models=[],curMdl='',selMdl='';
 
-function switchTab(id){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-  const btn=Array.from(document.querySelectorAll('.tab-btn')).find(b=>b.textContent.toLowerCase()===id);
-  if(btn)btn.classList.add('active');
-  $(`#pane-${id}`).classList.add('active');
+function stab(id){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));const b=[...document.querySelectorAll('.stab')].find(b=>b.textContent.toLowerCase()===id);if(b)b.classList.add('on');$('#p-'+id).classList.add('on')}
+function copyAddr(){const a=$('#waddr').textContent;if(a!=='0x0000...0000')navigator.clipboard.writeText(window.faddr||a)}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function addMsg(role,content,time,mid){
+  const w=document.createElement('div');w.className='mw '+{user:'u',agent:'a',system:'s'}[role]||'s';
+  if(mid)w.dataset.mid=mid;
+  if(role!=='system'){const s=document.createElement('div');s.className='ms '+{user:'u',agent:'a'}[role]||'a';s.textContent=role==='user'?'You':'Agent';w.appendChild(s)}
+  const b=document.createElement('div');b.className='mb '+{user:'u',agent:'a',system:'s'}[role]||'s';
+  if(mid)b.dataset.mid=mid;
+  if(role==='agent'&&content==='thinking')b.innerHTML='<div class="td"><span></span><span></span><span></span></div>';
+  else b.innerHTML=esc(content).replace(/\n/g,'<br>');
+  if(time){const t=document.createElement('div');t.className='mt';t.textContent=new Date(time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});b.appendChild(t)}
+  w.appendChild(b);ch.appendChild(w);ch.scrollTop=ch.scrollHeight;return b
 }
+function sysMsg(c){return addMsg('system',c,Date.now())}
 
-function copyAddr(){
-  const a=$('#wallet-addr').textContent;
-  if(a!=='0x0000...0000')navigator.clipboard.writeText(window.fullAddr||a);
+async function send(){
+  const inp=$('#chin');const m=inp.value.trim();if(!m||wait)return;inp.value='';wait=true;$('#snd').disabled=true;
+  addMsg('user',m,Date.now());const th=addMsg('agent','thinking',Date.now());
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});const d=await r.json();if(!d.ok)th.innerHTML=esc('Error: '+d.error);else poll(d.msgId,th)}
+  catch(e){th.innerHTML=esc('Error: '+e.message)}
+  wait=false;$('#snd').disabled=false
 }
-
-function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-
-function addMsg(role,content,time,msgId){
-  const wrap=document.createElement('div');
-  wrap.className=`msg-wrap ${role}`;
-  if(msgId)wrap.setAttribute('data-mid',msgId);
-  if(role!=='system'){
-    const snd=document.createElement('div');
-    snd.className=`msg-sender ${role}`;
-    snd.textContent=role==='user'?'You':'Agent';
-    wrap.appendChild(snd);
-  }
-  const bub=document.createElement('div');
-  bub.className=`msg-bubble ${role}`;
-  if(msgId)bub.setAttribute('data-mid',msgId);
-  if(role==='agent'&&content==='thinking'){
-    bub.innerHTML='<div class="thinking-dots"><span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></div>';
-  } else {
-    bub.innerHTML=escHtml(content).replace(/\n/g,'<br>');
-  }
-  if(time){
-    const t=document.createElement('div');
-    t.className='msg-time';
-    t.textContent=new Date(time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    bub.appendChild(t);
-  }
-  wrap.appendChild(bub);
-  chatEl.appendChild(wrap);
-  chatEl.scrollTop=chatEl.scrollHeight;
-  return bub;
+async function poll(mid,bub,n=0){
+  if(n>60){bub.innerHTML=esc('Processing...');return}
+  try{const r=await fetch('/api/chat/pending/'+mid);const d=await r.json();
+    if(d.completed){const r2=await fetch('/api/chat/response');const t=await r2.json();let rp=t.thinking||'Done.';if(t.toolName)rp+='\nTool: '+t.toolName;if(t.toolResult)rp+='\n'+t.toolResult.slice(0,300);bub.innerHTML=esc(rp).replace(/\n/g,'<br>')}
+    else{bub.innerHTML=`<div style="margin-bottom:4px">Working... (${n+1}s)</div><div class="td"><span></span><span></span><span></span></div>`;setTimeout(()=>poll(mid,bub,n+1),2000)}
+  }catch(e){setTimeout(()=>poll(mid,bub,n+1),2000)}
 }
+$('#chin').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
 
-function addSystemMsg(content){
-  return addMsg('system',content,Date.now());
-}
-
-async function sendMsg(){
-  const inp=$('#chat-input');
-  const msg=inp.value.trim();
-  if(!msg||waiting)return;
-  inp.value='';
-  waiting=true;
-  $('#send-btn').disabled=true;
-  addMsg('user',msg,Date.now());
-  const think=addMsg('agent','thinking',Date.now());
-  try{
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
-    const data=await res.json();
-    if(!data.ok){think.innerHTML=escHtml('Error: '+data.error);}
-    else{pollResponse(data.msgId,think);}
-  }catch(e){think.innerHTML=escHtml('Error: '+e.message);}
-  waiting=false;
-  $('#send-btn').disabled=false;
-}
-
-async function pollResponse(msgId,bubble,attempt=0){
-  if(attempt>60){bubble.innerHTML=escHtml('Processing... check logs for status.');return;}
-  try{
-    const res=await fetch(`/api/chat/pending/${msgId}`);
-    const data=await res.json();
-    if(data.completed){
-      const r2=await fetch('/api/chat/response');
-      const turn=await r2.json();
-      let reply=turn.thinking||'Done.';
-      if(turn.toolName)reply+='\n\nTool: '+turn.toolName;
-      if(turn.toolResult)reply+='\nResult: '+turn.toolResult.slice(0,400);
-      bubble.innerHTML=escHtml(reply).replace(/\n/g,'<br>');
-    }else{
-      bubble.innerHTML=`<div style="margin-bottom:6px">Working... (${attempt+1}s)</div><div class="thinking-dots"><span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></div>`;
-      setTimeout(()=>pollResponse(msgId,bubble,attempt+1),2000);
-    }
-  }catch(e){setTimeout(()=>pollResponse(msgId,bubble,attempt+1),2000);}
-}
-
-$('#chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
-
-// ─── Model Selection ─────────────────────────────────────────
-function toggleModelDropdown(){
-  const dd=$('#model-dropdown');
-  dd.classList.toggle('show');
-  $('#model-btn').classList.toggle('open');
-}
-
+// ── Models ──
+function toggleDD(){$('#mdl-dd').classList.toggle('open')}
 async function loadModels(){
-  try{
-    const res=await fetch('/api/models');
-    const data=await res.json();
-    availableModels=data.models||[];
-    renderModelList(data.models,data.ollamaRunning);
-  }catch(e){
-    renderModelList([],false);
-  }
-  try{
-    const res=await fetch('/api/model');
-    const data=await res.json();
-    currentModel=data.currentModel||'unknown';
-    $('#current-model-label').textContent=currentModel;
-  }catch(e){}
+  try{const r=await fetch('/api/models');const d=await r.json();models=d.models||[];renderDD(d.models,d.ollamaRunning)}catch(e){renderDD([],false)}
+  try{const r=await fetch('/api/model');const d=await r.json();curMdl=d.currentModel||'?';$('#cur-mdl').textContent=curMdl}catch(e){}
 }
-
-function renderModelList(models,ollamaRunning){
-  const el=$('#model-list');
-  if(!models.length){
-    el.innerHTML='<div class="model-option" style="color:var(--text-dim)">No models found. Start Ollama first.</div>';
-    return;
-  }
-  el.innerHTML=models.map(m=>`
-    <div class="model-option ${m.id===currentModel?'active':''}" onclick="selectModel('${m.id}')">
-      <div style="flex:1">
-        <div class="model-name">${m.displayName||m.id}</div>
-        <div class="model-info">${m.sizeGB||''} ${m.installed===false?'(not pulled)':''}</div>
-      </div>
-      <span class="model-free">FREE</span>
-      ${m.installed===false?`<span class="model-pull" onclick="event.stopPropagation();pullModel('${m.id}')">Pull</span>`:''}
-    </div>
-  `).join('');
+function renderDD(ms,running){
+  const el=$('#mdl-dd');if(!ms.length){el.innerHTML='<div class="mdl-opt" style="color:var(--dim)">No models. Start Ollama.</div>';return}
+  el.innerHTML='<div class="mdl-sec">Installed (Free)</div>'+ms.filter(m=>m.installed!==false).map(m=>`<div class="mdl-opt ${m.id===curMdl?'on':''}" onclick="pickMdl('${m.id}')"><span class="n">${m.displayName||m.id}</span><span class="tag">FREE</span></div>`).join('')+'<div class="mdl-sec">Available (Not Pulled)</div>'+ms.filter(m=>m.installed===false).map(m=>`<div class="mdl-opt" onclick="pickMdl('${m.id}')"><span class="n">${m.displayName||m.id}</span><span class="pull" onclick="event.stopPropagation();pullMdl('${m.id}')">Pull</span></div>`).join('')
 }
-
-async function selectModel(modelId){
-  $('#model-dropdown').classList.remove('show');
-  $('#model-btn').classList.remove('open');
-  if(modelId===currentModel)return;
-  selectedModalModel=modelId;
-  openModelModal(modelId);
+function pickMdl(id){$('#mdl-dd').classList.remove('open');if(id===curMdl)return;selMdl=id;openMdlModal(id)}
+function openMdlModal(id){
+  $('#mmdl-list').innerHTML=models.map(m=>`<div class="mi ${m.id===id?'sel':''}" onclick="selMdl='${m.id}';document.querySelectorAll('.mi').forEach(i=>i.classList.remove('sel'));this.classList.add('sel')"><div><div class="n">${m.displayName||m.id}</div><div class="d">Free local model</div></div><span class="b">FREE</span></div>`).join('');
+  $('#mmdl').classList.add('on')
 }
-
-function openModelModal(modelId){
-  const el=$('#modal-model-list');
-  el.innerHTML=availableModels.map(m=>`
-    <div class="model-item ${m.id===modelId?'selected':''}" onclick="selectedModalModel='${m.id}';document.querySelectorAll('.model-item').forEach(i=>i.classList.remove('selected'));this.classList.add('selected');">
-      <div class="left">
-        <div class="name">${m.displayName||m.id}</div>
-        <div class="desc">${m.sizeGB||'Free local model'}</div>
-      </div>
-      <span class="badge free">FREE</span>
-    </div>
-  `).join('');
-  $('#model-modal').classList.add('show');
+function closeMdl(){$('#mmdl').classList.remove('on')}
+async function confirmSwitch(){
+  if(!selMdl)return;closeMdl();sysMsg('Switching to '+selMdl+'...');
+  try{const r=await fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selMdl})});const d=await r.json();
+    if(d.ok){curMdl=selMdl;$('#cur-mdl').textContent=curMdl;sysMsg('Now using '+curMdl);loadModels()}else sysMsg('Error: '+d.error)
+  }catch(e){sysMsg('Error: '+e.message)}
 }
+async function pullMdl(id){sysMsg('Pulling '+id+'...');try{await fetch('/api/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:id})});sysMsg('Pulled '+id+'!');loadModels()}catch(e){sysMsg('Error: '+e.message)}}
+document.addEventListener('click',e=>{if(!e.target.closest('.mdl-sel'))$('#mdl-dd').classList.remove('open')});
 
-function closeModelModal(){$('#model-modal').classList.remove('show');}
+// ── Sidebar ──
+function rTools(ts){const el=$('#p-tools');if(!ts.length){el.innerHTML='<div class="emp">No tools</div>';return}el.innerHTML=ts.slice(0,20).map(t=>`<div class="tc"><div class="nm">${esc(t.name||'?')}</div><div class="ar">${esc((t.arguments||'').slice(0,100))}</div>${t.result?`<div class="rs">${esc((t.result||'').slice(0,120))}</div>`:''}</div>`).join('');$('#s-tools').textContent=ts.length}
+function rGoals(gs){const el=$('#p-goals');if(!gs.length){el.innerHTML='<div class="emp">No goals</div>';return}el.innerHTML=gs.map(g=>`<div class="gc"><div class="ti">${esc(g.title||'')}</div><span class="gb">${g.status||'active'}</span></div>`).join('');$('#s-goals').textContent=gs.length}
+function aLog(l){const el=$('#p-logs');if(el.querySelector('.emp'))el.innerHTML='';const d=document.createElement('div');d.className='gl';if(l.includes('ERROR'))d.classList.add('err');else if(l.includes('WARN'))d.classList.add('wrn');else d.classList.add('inf');d.textContent=l;el.appendChild(d);if(el.children.length>150)el.removeChild(el.firstChild);el.scrollTop=el.scrollHeight}
 
-async function confirmModelSwitch(){
-  if(!selectedModalModel)return;
-  closeModelModal();
-  addSystemMsg(`Switching model to ${selectedModalModel}...`);
-  try{
-    const res=await fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selectedModalModel})});
-    const data=await res.json();
-    if(data.ok){
-      currentModel=selectedModalModel;
-      $('#current-model-label').textContent=currentModel;
-      addSystemMsg(`Model switched to ${selectedModalModel}. The agent will use this model on next inference call.`);
-      renderModelList(availableModels,true);
-    }else{
-      addSystemMsg('Error switching model: '+data.error);
-    }
-  }catch(e){addSystemMsg('Error: '+e.message);}
-}
+let lastAmts=0;
+async function fetchAmts(){try{const r=await fetch('/api/chat/agent-messages?since='+lastAmts);const ms=await r.json();for(const m of ms){if(m.ts>lastAmts)lastAmts=m.ts;if($('[data-mid="'+m.id+'"]'))continue;addMsg('agent',m.content,m.ts,m.id)}}catch{}}
 
-async function pullModel(modelId){
-  addSystemMsg(`Pulling ${modelId}... This may take a few minutes.`);
-  try{
-    const res=await fetch('/api/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:modelId})});
-    const data=await res.json();
-    addSystemMsg(`Model ${modelId} pulled successfully!`);
-    loadModels();
-  }catch(e){addSystemMsg('Error pulling model: '+e.message);}
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.model-selector')){
-    $('#model-dropdown').classList.remove('show');
-    $('#model-btn').classList.remove('open');
-  }
-});
-
-// ─── Sidebar Data ──────────────────────────────────────────────
-function renderTools(tools){
-  const el=$('#pane-tools');
-  if(!tools.length){el.innerHTML='<div class="empty">No tools</div>';return;}
-  el.innerHTML=tools.slice(0,20).map(t=>`<div class="tool-card"><div class="name">${escHtml(t.name||'?')}</div><div class="args">${escHtml((t.arguments||'').slice(0,120))}</div>${t.result?`<div class="result">${escHtml((t.result||'').slice(0,150))}</div>`:''}</div>`).join('');
-  $('#stat-tools').textContent=tools.length;
-}
-function renderGoals(goals){
-  const el=$('#pane-goals');
-  if(!goals.length){el.innerHTML='<div class="empty">No goals</div>';return;}
-  el.innerHTML=goals.map(g=>`<div class="goal-card"><div class="title">${escHtml(g.title||'')}</div><span class="goal-badge">${g.status||'active'}</span></div>`).join('');
-  $('#stat-goals').textContent=goals.length;
-}
-function addLog(line){
-  const el=$('#pane-logs');
-  if(el.querySelector('.empty'))el.innerHTML='';
-  const d=document.createElement('div');
-  d.className='log-line';
-  if(line.includes('ERROR'))d.classList.add('error');
-  else if(line.includes('WARN'))d.classList.add('warn');
-  else d.classList.add('info');
-  d.textContent=line;
-  el.appendChild(d);
-  if(el.children.length>200)el.removeChild(el.firstChild);
-  el.scrollTop=el.scrollHeight;
-}
-
-let lastAgentMsgTs=0;
-async function fetchAgentMsgs(){
-  try{
-    const res=await fetch(`/api/chat/agent-messages?since=${lastAgentMsgTs}`);
-    const msgs=await res.json();
-    for(const m of msgs){
-      if(m.ts>lastAgentMsgTs)lastAgentMsgTs=m.ts;
-      if($(`[data-mid="${m.id}"]`))continue;
-      addMsg('agent',m.content,m.ts,m.id);
-    }
-  }catch{}
-}
-
-async function syncAll(){
-  try{
-    const res=await fetch('/api/status');
-    const d=await res.json();
-    $('#agent-name').textContent=d.name||'gsr';
-    $('#avatar').textContent=(d.name||'G')[0].toUpperCase();
-    const addr=d.walletAddress||'unknown';
-    window.fullAddr=addr;
-    $('#wallet-addr').textContent=addr!=='unknown'?(addr.slice(0,6)+'...'+addr.slice(-4)):'unknown';
-    $('#stat-turns').textContent=d.turns||0;
-    renderTools(d.toolCalls||[]);
-    renderGoals(d.goals||[]);
-    if(d.currentModel&&d.currentModel!==currentModel){
-      currentModel=d.currentModel;
-      $('#current-model-label').textContent=currentModel;
-    }
-    if(d.recentLogs&&!$('#pane-logs').children.length){
-      for(const l of d.recentLogs.slice(-100))addLog(l);
-    }
-  }catch{}
-  fetchAgentMsgs();
+async function sync(){
+  try{const r=await fetch('/api/status');const d=await r.json();
+    $('#anm').textContent=d.name||'gsr';$('#av').textContent=(d.name||'G')[0].toUpperCase();
+    const a=d.walletAddress||'unknown';window.faddr=a;$('#waddr').textContent=a!=='unknown'?(a.slice(0,6)+'...'+a.slice(-4)):'unknown';
+    $('#s-turns').textContent=d.turns||0;rTools(d.toolCalls||[]);rGoals(d.goals||[]);
+    if(d.currentModel&&d.currentModel!==curMdl){curMdl=d.currentModel;$('#cur-mdl').textContent=curMdl}
+    if(d.recentLogs&&!$('#p-logs').children.length)for(const l of d.recentLogs.slice(-80))aLog(l)
+  }catch{}fetchAmts()
 }
 
 let ws;
-function connectWS(){
-  const p=location.protocol==='https:'?'wss:':'ws:';
-  ws=new WebSocket(`${p}//${location.host}`);
-  ws.onopen=()=>{$('#status-text').textContent='Connected';};
-  ws.onclose=()=>{$('#status-text').textContent='Disconnected';setTimeout(connectWS,3000);};
-  ws.onmessage=e=>{
-    try{
-      const m=JSON.parse(e.data);
-      if(m.type==='log')addLog(m.line);
-      if(m.type==='update')syncAll();
-      if(m.type==='model_switch'){
-        currentModel=m.model;
-        $('#current-model-label').textContent=currentModel;
-        addSystemMsg(`Model switched to ${m.model}`);
-        loadModels();
-      }
-    }catch{}
-  };
-}
+function connectWS(){const p=location.protocol==='https:'?'wss:':'ws:';ws=new WebSocket(p+'//'+location.host);ws.onopen=()=>{$('#st-txt').textContent='Connected'};ws.onclose=()=>{$('#st-txt').textContent='Disconnected';setTimeout(connectWS,3000)};ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='log')aLog(m.line);if(m.type==='update')sync();if(m.type==='model_switch'){curMdl=m.model;$('#cur-mdl').textContent=curMdl;sysMsg('Model: '+m.model);loadModels()}}catch{}}}
 
-syncAll();
-loadModels();
-setInterval(syncAll,5000);
-connectWS();
+sync();loadModels();setInterval(sync,5000);connectWS();
 </script>
 </body>
 </html>
