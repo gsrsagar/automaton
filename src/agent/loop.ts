@@ -127,6 +127,7 @@ export async function runAgentLoop(
   // Check if direct inference keys are configured (bypasses Conway credit requirements)
   const hasDirectInferenceKey = !!(config.openaiApiKey || config.anthropicApiKey);
   const hasConwayKey = !!(process.env.CONWAY_API_KEY || config.conwayApiKey);
+  const hasOllama = !!(config.ollamaBaseUrl || process.env.OLLAMA_BASE_URL);
 
   // Optional orchestration bootstrap (requires V9 goals/task tables)
   let planModeController: PlanModeController | undefined;
@@ -362,7 +363,7 @@ export async function runAgentLoop(
   onStateChange?.("waking");
 
   // Get financial state
-  let financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey);
+  let financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey, hasOllama);
 
   // Check if this is the first run
   const isFirstRun = db.getTurnCount() === 0;
@@ -404,7 +405,7 @@ export async function runAgentLoop(
       if (sleepUntil && new Date(sleepUntil) > new Date()) {
         // Don't sleep if there are pending inbox messages from the user
         const pendingInbox = db.raw.prepare(
-          "SELECT 1 FROM inbox_messages WHERE status = 'received' LIMIT 1"
+          "SELECT 1 FROM inbox_messages WHERE status IN ('received', 'in_progress') LIMIT 1"
         ).get();
         if (pendingInbox) {
           log(config, `[SLEEP] Sleep scheduled but pending inbox messages found. Processing inbox instead.`);
@@ -421,25 +422,30 @@ export async function runAgentLoop(
 
       // Check for unprocessed inbox messages using the state machine:
       // received → in_progress (claim) → processed (on success) or received/failed (on failure)
-      if (!pendingInput) {
-        claimedMessages = claimInboxMessages(db.raw, 10);
-        if (claimedMessages.length > 0) {
-          const formatted = claimedMessages
-            .map((m) => {
-              const from = sanitizeInput(m.fromAddress, m.fromAddress, "social_address");
-              const content = sanitizeInput(m.content, m.fromAddress, "social_message");
-              if (content.blocked) {
-                return `[INJECTION BLOCKED from ${from.content}]: message was blocked by safety filter`;
-              }
-              return `[Message from ${from.content}]: ${content.content}`;
-            })
-            .join("\n\n");
+      // Always check for inbox messages, even when we have wakeup input
+      claimedMessages = claimInboxMessages(db.raw, 10);
+      if (claimedMessages.length > 0) {
+        const formatted = claimedMessages
+          .map((m) => {
+            const from = sanitizeInput(m.fromAddress, m.fromAddress, "social_address");
+            const content = sanitizeInput(m.content, m.fromAddress, "social_message");
+            if (content.blocked) {
+              return `[INJECTION BLOCKED from ${from.content}]: message was blocked by safety filter`;
+            }
+            return `[Message from ${from.content}]: ${content.content}`;
+          })
+          .join("\n\n");
+        if (pendingInput) {
+          // Append inbox messages to existing wakeup input
+          pendingInput.content += "\n\n" + formatted;
+        } else {
           pendingInput = { content: formatted, source: "agent" };
         }
+        log(config, `[INBOX] Found ${claimedMessages.length} pending message(s), added to context.`);
       }
 
       // Refresh financial state periodically
-      financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey);
+      financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey, hasOllama);
 
       // Check survival tier
       // api_unreachable: creditsCents === -1 means API failed with no cache.
@@ -474,7 +480,7 @@ export async function runAgentLoop(
                 log(config, `[AUTO-TOPUP] Bought $${topupResult.amountUsd} credits from USDC mid-loop`);
                 // Re-fetch financial state after topup so the rest of
                 // the turn sees the updated balance.
-                financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey);
+      financial = await getFinancialState(conway, identity.address, db, config.chainType || identity.chainType || "evm", hasDirectInferenceKey, hasConwayKey, hasOllama);
               }
             } catch (err: any) {
               logger.warn(`Inline auto-topup failed: ${err.message}`);
@@ -566,9 +572,9 @@ export async function runAgentLoop(
           !hasSelfAssignedParentTask &&
           (orchestratorTick.agentsActive > 0 || localWorkersActive > 0)
         ) {
-          // Don't sleep if there are pending inbox messages from the user
+          // Don't sleep if there are pending inbox messages from the user (received or in_progress)
           const pendingInbox = db.raw.prepare(
-            "SELECT 1 FROM inbox_messages WHERE status = 'received' LIMIT 1"
+            "SELECT 1 FROM inbox_messages WHERE status IN ('received', 'in_progress') LIMIT 1"
           ).get();
           if (pendingInbox) {
             log(config, "[ORCHESTRATOR] Active agents but pending inbox messages. Processing inbox instead of sleeping.");
@@ -971,9 +977,19 @@ async function getFinancialState(
   chainType?: string,
   hasDirectInferenceKey?: boolean,
   hasConwayKey?: boolean,
+  hasOllama?: boolean,
 ): Promise<FinancialState> {
   let creditsCents = _lastKnownCredits;
   let usdcBalance = _lastKnownUsdc;
+
+  // Ollama is free local inference - no credits needed
+  if (hasOllama && !hasConwayKey) {
+    return {
+      creditsCents: 1000,
+      usdcBalance: 0,
+      lastChecked: new Date().toISOString(),
+    };
+  }
 
   if (hasDirectInferenceKey && !hasConwayKey) {
     return {

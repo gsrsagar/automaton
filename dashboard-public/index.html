@@ -3,337 +3,520 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Conway Automaton Dashboard</title>
+<title>Conway Automaton</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--accent:#6c5ce7;--accent2:#00cec9;--text:#e0e0e0;--dim:#666;--red:#ff6b6b;--green:#00b894;--yellow:#fdcb6e;--blue:#74b9ff}
-body{font-family:'SF Mono',Monaco,'Cascadia Code',monospace;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.header{background:linear-gradient(135deg,#12121a,#1a1a2e);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.header h1{font-size:16px;font-weight:600;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header .status{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--dim)}
-.header .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+:root{
+  --bg:#07070a;--panel:rgba(16,16,26,0.75);--panel-solid:#10101a;
+  --border:rgba(255,255,255,0.08);--accent:#6c5ce7;--cyan:#00cec9;
+  --text:#e2e8f0;--text-dim:#94a3b8;--text-dark:#64748b;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);background-image:radial-gradient(at 0% 0%,rgba(108,92,231,0.1) 0px,transparent 50%),radial-gradient(at 100% 100%,rgba(0,206,201,0.05) 0px,transparent 50%);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
 
-.main{display:flex;flex:1;overflow:hidden}
-.sidebar{width:320px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
-.chat-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.header{height:56px;background:rgba(10,10,16,0.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-logo{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--cyan));border-radius:7px;display:flex;align-items:center;justify-content:center;animation:logo-rotate 6s infinite linear}
+.brand-logo::after{content:'';width:12px;height:12px;border:2px solid #fff;border-radius:3px}
+@keyframes logo-rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.header h1{font-size:15px;font-weight:800;background:linear-gradient(135deg,#fff,#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-right{display:flex;align-items:center;gap:14px}
+.status-badge{display:flex;align-items:center;gap:6px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:5px 10px;border-radius:16px;font-size:10px;font-weight:600;color:var(--green)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4)}
+.credit-badge{font-size:10px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace}
 
-.panel{display:flex;flex-direction:column;overflow:hidden}
-.panel-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0;background:var(--card)}
-.panel-header .badge{background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;font-size:10px}
-.panel-body{flex:1;overflow-y:auto;padding:8px 12px;font-size:11px;line-height:1.5}
-.panel-body::-webkit-scrollbar{width:5px}
-.panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.model-selector{position:relative}
+.model-btn{display:flex;align-items:center;gap:6px;background:rgba(108,92,231,0.1);border:1px solid rgba(108,92,231,0.3);padding:5px 12px;border-radius:16px;font-size:10px;font-weight:600;color:var(--accent);cursor:pointer;transition:all .2s;font-family:'Fira Code',monospace}
+.model-btn:hover{background:rgba(108,92,231,0.2);border-color:var(--accent)}
+.model-btn .arrow{font-size:8px;transition:transform .2s}
+.model-btn.open .arrow{transform:rotate(180deg)}
+.model-dropdown{position:absolute;top:100%;right:0;margin-top:6px;background:var(--panel-solid);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:260px;display:none;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.model-dropdown.show{display:block}
+.model-option{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:all .15s;font-size:11px}
+.model-option:hover{background:rgba(108,92,231,0.1)}
+.model-option.active{background:rgba(108,92,231,0.15);border:1px solid rgba(108,92,231,0.3)}
+.model-option .model-name{font-weight:600;color:var(--text)}
+.model-option .model-info{font-size:9px;color:var(--text-dim)}
+.model-option .model-free{font-size:8px;font-weight:700;color:var(--green);background:rgba(16,185,129,0.1);padding:1px 5px;border-radius:3px}
+.model-option .model-installed{font-size:8px;color:var(--text-dark)}
+.model-option .model-pull{font-size:8px;color:var(--accent);cursor:pointer}
+.model-option .model-pull:hover{text-decoration:underline}
+.model-section{font-size:8px;color:var(--text-dark);text-transform:uppercase;padding:6px 10px 3px;font-weight:700;letter-spacing:.5px}
 
-.stat-row{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
-.stat-box{flex:1;text-align:center;padding:6px}
-.stat-box .num{font-size:18px;font-weight:700;color:var(--accent)}
-.stat-box .lbl{font-size:9px;color:var(--dim);margin-top:2px}
+.main{display:grid;grid-template-columns:280px 1fr;flex:1;overflow:hidden;height:calc(100vh - 56px)}
 
-.identity-bar{display:flex;gap:12px;align-items:center;padding:6px 12px;font-size:10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
-.identity-bar .label{color:var(--dim)}
-.identity-bar .value{color:var(--accent2);font-weight:600}
+.sidebar{background:var(--panel);backdrop-filter:blur(16px);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-section{padding:16px;border-bottom:1px solid var(--border)}
+.agent-profile{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.agent-avatar{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a29bfe);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:14px}
+.agent-info h3{font-size:13px;font-weight:700}
+.agent-info p{font-size:10px;color:var(--text-dim);font-family:'Fira Code',monospace;cursor:pointer}
+.agent-info p:hover{color:var(--cyan)}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat{text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px}
+.stat .val{font-size:14px;font-weight:700;color:var(--cyan);font-family:'Fira Code',monospace}
+.stat .lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;margin-top:2px;font-weight:600}
 
-/* Chat */
-.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;background:transparent;border:none;color:var(--text-dim);padding:10px 4px;font-size:9px;font-weight:700;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.sidebar-content{flex:1;overflow-y:auto;padding:12px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+.tool-card{background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;font-family:'Fira Code',monospace;font-size:10px}
+.tool-card .name{color:var(--cyan);font-weight:600;margin-bottom:3px}
+.tool-card .args{color:var(--text-dim);font-size:9px;background:rgba(0,0,0,0.15);padding:4px;border-radius:3px;margin:4px 0;overflow-x:auto}
+.tool-card .result{color:var(--green);font-size:9px;max-height:50px;overflow-y:auto}
+.goal-card{background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:6px}
+.goal-card .title{font-size:11px;font-weight:700;margin-bottom:4px}
+.goal-badge{display:inline-block;font-size:8px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:rgba(0,206,201,0.1);color:var(--cyan)}
+.log-line{font-family:'Fira Code',monospace;font-size:9px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.01);white-space:pre-wrap;word-break:break-all}
+
+/* Chat Panel */
+.chat-panel{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.chat-header{padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(10,10,16,0.5);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-header h2{font-size:14px;font-weight:800}
+.chat-header .sub{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+.chat-header .live{color:var(--cyan);font-weight:700;font-size:10px;font-family:'Fira Code',monospace}
+
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
 .chat-messages::-webkit-scrollbar{width:5px}
 .chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.chat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.6;word-wrap:break-word;white-space:pre-wrap}
-.chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
-.chat-msg.agent{align-self:flex-start;background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px}
-.chat-msg.system{align-self:center;background:rgba(253,203,110,.1);color:var(--yellow);border:1px solid rgba(253,203,110,.2);font-size:10px;max-width:90%}
-.chat-msg .msg-time{font-size:9px;color:rgba(255,255,255,.4);margin-top:4px}
-.chat-msg.agent .msg-time{color:var(--dim)}
-.chat-input-bar{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;background:var(--card)}
-.chat-input-bar input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
-.chat-input-bar input:focus{border-color:var(--accent)}
-.chat-input-bar button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600}
-.chat-input-bar button:hover{opacity:.9}
-.chat-input-bar button:disabled{opacity:.4;cursor:not-allowed}
 
-/* Sidebar items */
-.log-line{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.02);white-space:pre-wrap;word-break:break-all;font-size:10px}
-.log-line.error{color:var(--red)}.log-line.warn{color:var(--yellow)}.log-line.info{color:var(--dim)}
-.tool-call{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px}
-.tool-call .tool-name{color:var(--accent);font-weight:600;font-size:11px}
-.tool-call .tool-args{color:var(--dim);font-size:10px;max-height:40px;overflow:hidden}
-.tool-call .tool-result{color:var(--accent2);font-size:10px;margin-top:3px;max-height:50px;overflow:hidden;border-top:1px solid var(--border);padding-top:3px}
-.goal-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px}
-.goal-item .goal-title{font-weight:600;font-size:11px;margin-bottom:3px}
-.goal-item .goal-status{font-size:10px;padding:1px 6px;border-radius:3px;display:inline-block}
-.goal-item .goal-status.active{background:rgba(0,184,148,.15);color:var(--green)}
-.empty{color:var(--dim);text-align:center;padding:16px;font-style:italic;font-size:11px}
+.msg-wrap{display:flex;flex-direction:column;max-width:80%}
+.msg-wrap.user{align-self:flex-end;align-items:flex-end}
+.msg-wrap.agent{align-self:flex-start;align-items:flex-start}
+.msg-wrap.system{align-self:center;align-items:center}
+.msg-sender{font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:3px;letter-spacing:.5px}
+.msg-sender.user{color:var(--accent)}
+.msg-sender.agent{color:var(--cyan)}
+.msg-bubble{width:100%;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;animation:fadeIn .3s ease-out;white-space:pre-wrap;word-wrap:break-word}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-bubble.user{background:linear-gradient(135deg,var(--accent),#5649c0);color:#fff;border-bottom-right-radius:3px;box-shadow:0 3px 10px rgba(108,92,231,0.2)}
+.msg-bubble.agent{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-bottom-left-radius:3px}
+.msg-bubble.system{background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);color:var(--yellow);font-size:10px;border-radius:16px;padding:5px 14px;text-align:center;max-width:90%}
+.msg-bubble.model-switch{background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.3);color:var(--accent);font-size:11px;border-radius:10px;padding:10px 14px;text-align:center}
+.msg-time{font-size:8px;color:rgba(255,255,255,0.3);margin-top:4px;text-align:right}
+.msg-bubble.agent .msg-time{color:var(--text-dark)}
+.msg-bubble strong{color:#fff;font-weight:700}
 
-.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
-.sidebar-tab{flex:1;padding:8px;text-align:center;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
-.sidebar-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.sidebar-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
-.sidebar-content .tab-pane{display:none;flex:1;overflow-y:auto;padding:8px 12px}
-.sidebar-content .tab-pane.active{display:block}
+.thinking-dots{display:flex;gap:5px;align-items:center;height:10px;padding:4px 0}
+.thinking-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:think 1.4s infinite ease-in-out both}
+.thinking-dot:nth-child(1){animation-delay:-.32s}
+.thinking-dot:nth-child(2){animation-delay:-.16s}
+@keyframes think{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+.chat-input{padding:14px 20px;border-top:1px solid var(--border);background:rgba(10,10,16,0.6);display:flex;gap:10px;flex-shrink:0}
+.chat-input input{flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:all .2s}
+.chat-input input:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(108,92,231,0.15)}
+.send-btn{background:linear-gradient(135deg,var(--accent),#5649c0);color:#fff;border:none;border-radius:8px;padding:0 20px;font-weight:700;font-family:inherit;cursor:pointer;font-size:12px;transition:all .2s}
+.send-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(108,92,231,0.3)}
+.send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* Model Switch Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.show{display:flex}
+.modal{background:var(--panel-solid);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 16px 64px rgba(0,0,0,0.5)}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.modal p{font-size:11px;color:var(--text-dim);margin-bottom:16px}
+.modal .model-list{max-height:300px;overflow-y:auto;margin-bottom:16px}
+.modal .model-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+.modal .model-item:hover{border-color:var(--accent);background:rgba(108,92,231,0.05)}
+.modal .model-item.selected{border-color:var(--accent);background:rgba(108,92,231,0.1)}
+.modal .model-item .left{display:flex;flex-direction:column;gap:2px}
+.modal .model-item .name{font-size:12px;font-weight:600}
+.modal .model-item .desc{font-size:9px;color:var(--text-dim)}
+.modal .model-item .badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px}
+.modal .model-item .badge.free{background:rgba(16,185,129,0.1);color:var(--green)}
+.modal .model-item .badge.paid{background:rgba(239,68,68,0.1);color:var(--red)}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end}
+.modal .btn{padding:8px 16px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.modal .btn-primary{background:var(--accent);color:#fff}
+.modal .btn-primary:hover{background:#5649c0}
+.modal .btn-secondary{background:rgba(255,255,255,0.05);color:var(--text-dim);border:1px solid var(--border)}
+.modal .btn-secondary:hover{background:rgba(255,255,255,0.1)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Conway Automaton Dashboard</h1>
-  <div class="status">
-    <div class="dot" id="status-dot"></div>
-    <span id="status-text">Connecting...</span>
-    <span style="color:var(--border)">|</span>
-    <span id="agent-name">--</span>
+  <div class="brand">
+    <div class="brand-logo"></div>
+    <h1>Conway Automaton</h1>
+  </div>
+  <div class="header-right">
+    <div class="model-selector">
+      <div class="model-btn" id="model-btn" onclick="toggleModelDropdown()">
+        <span id="current-model-label">Loading...</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="model-dropdown" id="model-dropdown">
+        <div class="model-section">Free Models (Ollama)</div>
+        <div id="model-list">Loading...</div>
+      </div>
+    </div>
+    <div class="credit-badge">Credits: FREE</div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span id="status-text">Connecting</span>
+    </div>
   </div>
 </div>
 
 <div class="main">
-  <!-- Sidebar -->
   <div class="sidebar">
-    <div class="identity-bar">
-      <span><span class="label">Address: </span><span class="value" id="id-address">--</span></span>
-      <span><span class="label">Model: </span><span class="value" id="id-model">gpt-5-mini</span></span>
-    </div>
-    <div class="stat-row">
-      <div class="stat-box"><div class="num" id="stat-turns">0</div><div class="lbl">Turns</div></div>
-      <div class="stat-box"><div class="num" id="stat-goals">0</div><div class="lbl">Goals</div></div>
-      <div class="stat-box"><div class="num" id="stat-tools">0</div><div class="lbl">Tools</div></div>
+    <div class="sidebar-section">
+      <div class="agent-profile">
+        <div class="agent-avatar" id="avatar">G</div>
+        <div class="agent-info">
+          <h3 id="agent-name">gsr</h3>
+          <p id="wallet-addr" onclick="copyAddr()" title="Click to copy">0x0000...0000</p>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><div class="val" id="stat-turns">0</div><div class="lbl">Turns</div></div>
+        <div class="stat"><div class="val" id="stat-goals">0</div><div class="lbl">Goals</div></div>
+        <div class="stat"><div class="val" id="stat-tools">0</div><div class="lbl">Tools</div></div>
+      </div>
     </div>
     <div class="sidebar-tabs">
-      <div class="sidebar-tab active" data-tab="tools">Tools</div>
-      <div class="sidebar-tab" data-tab="goals">Goals</div>
-      <div class="sidebar-tab" data-tab="logs">Logs</div>
+      <button class="tab-btn active" onclick="switchTab('goals')">Goals</button>
+      <button class="tab-btn" onclick="switchTab('tools')">Tools</button>
+      <button class="tab-btn" onclick="switchTab('logs')">Logs</button>
     </div>
     <div class="sidebar-content">
-      <div class="tab-pane active" id="tab-tools"><div class="empty">No tool calls yet</div></div>
-      <div class="tab-pane" id="tab-goals"><div class="empty">No goals yet</div></div>
-      <div class="tab-pane" id="tab-logs"></div>
+      <div class="tab-pane active" id="pane-goals"><div class="empty">No goals</div></div>
+      <div class="tab-pane" id="pane-tools"><div class="empty">No tools</div></div>
+      <div class="tab-pane" id="pane-logs"><div class="empty">No logs</div></div>
     </div>
   </div>
 
-  <!-- Chat Panel -->
   <div class="chat-panel">
-    <div class="panel-header">
-      Chat with Agent
-      <span style="font-size:10px;color:var(--dim)">Type instructions — agent will execute them</span>
+    <div class="chat-header">
+      <div>
+        <h2>Chat with Agent</h2>
+        <div class="sub">Send instructions, ask questions, get responses</div>
+      </div>
+      <div class="live">LIVE</div>
     </div>
     <div class="chat-messages" id="chat-messages">
-      <div class="chat-msg system">Connected to automaton. Send instructions and the agent will execute them autonomously.</div>
+      <div class="msg-wrap system"><div class="msg-bubble system">Welcome! Type a message below to interact with your agent. All models are FREE (running locally via Ollama).</div></div>
     </div>
-    <div class="chat-input-bar">
-      <input type="text" id="chat-input" placeholder="Tell the agent what to do..." autofocus>
-      <button id="chat-send" onclick="sendChat()">Send</button>
+    <div class="chat-input">
+      <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off" autofocus>
+      <button class="send-btn" id="send-btn" onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Model Switch Modal -->
+<div class="modal-overlay" id="model-modal">
+  <div class="modal">
+    <h3>Switch Model</h3>
+    <p>Select a free model for the agent to use. The agent will pause briefly while switching.</p>
+    <div class="model-list" id="modal-model-list"></div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeModelModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-switch-btn" onclick="confirmModelSwitch()">Switch Model</button>
     </div>
   </div>
 </div>
 
 <script>
-const $ = s => document.querySelector(s);
-const chatMessages = $('#chat-messages');
-let chatWaiting = false;
+const $=s=>document.querySelector(s);
+const chatEl=$('#chat-messages');
+let waiting=false;
+let availableModels=[];
+let currentModel='';
+let selectedModalModel='';
 
-// ─── Sidebar tabs ──────────────────────────────────────────────
-document.querySelectorAll('.sidebar-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    $(`#tab-${tab.dataset.tab}`).classList.add('active');
-  });
-});
-
-// ─── Chat ──────────────────────────────────────────────────────
-function addChatMsg(role, content, time, msgId) {
-  const div = document.createElement('div');
-  div.className = `chat-msg ${role}`;
-  if (msgId) div.setAttribute('data-msg-id', msgId);
-  div.innerHTML = escapeHtml(content);
-  if (time) {
-    const ts = document.createElement('div');
-    ts.className = 'msg-time';
-    ts.textContent = new Date(time).toLocaleTimeString();
-    div.appendChild(ts);
-  }
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  return div;
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const btn=Array.from(document.querySelectorAll('.tab-btn')).find(b=>b.textContent.toLowerCase()===id);
+  if(btn)btn.classList.add('active');
+  $(`#pane-${id}`).classList.add('active');
 }
 
-function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function copyAddr(){
+  const a=$('#wallet-addr').textContent;
+  if(a!=='0x0000...0000')navigator.clipboard.writeText(window.fullAddr||a);
+}
 
-async function sendChat() {
-  const input = $('#chat-input');
-  const msg = input.value.trim();
-  if (!msg || chatWaiting) return;
-  
-  input.value = '';
-  chatWaiting = true;
-  $('#chat-send').disabled = true;
-  
-  addChatMsg('user', msg, Date.now());
-  
-  // Add thinking indicator
-  const thinkingDiv = addChatMsg('agent', 'Thinking...', Date.now());
-  
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg }),
-    });
-    const data = await res.json();
-    
-    if (!data.ok) {
-      thinkingDiv.textContent = `Error: ${data.error}`;
-      thinkingDiv.style.color = 'var(--red)';
-    } else {
-      // Poll for response
-      pollForResponse(data.msgId, thinkingDiv);
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+function addMsg(role,content,time,msgId){
+  const wrap=document.createElement('div');
+  wrap.className=`msg-wrap ${role}`;
+  if(msgId)wrap.setAttribute('data-mid',msgId);
+  if(role!=='system'){
+    const snd=document.createElement('div');
+    snd.className=`msg-sender ${role}`;
+    snd.textContent=role==='user'?'You':'Agent';
+    wrap.appendChild(snd);
+  }
+  const bub=document.createElement('div');
+  bub.className=`msg-bubble ${role}`;
+  if(msgId)bub.setAttribute('data-mid',msgId);
+  if(role==='agent'&&content==='thinking'){
+    bub.innerHTML='<div class="thinking-dots"><span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></div>';
+  } else {
+    bub.innerHTML=escHtml(content).replace(/\n/g,'<br>');
+  }
+  if(time){
+    const t=document.createElement('div');
+    t.className='msg-time';
+    t.textContent=new Date(time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    bub.appendChild(t);
+  }
+  wrap.appendChild(bub);
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop=chatEl.scrollHeight;
+  return bub;
+}
+
+function addSystemMsg(content){
+  return addMsg('system',content,Date.now());
+}
+
+async function sendMsg(){
+  const inp=$('#chat-input');
+  const msg=inp.value.trim();
+  if(!msg||waiting)return;
+  inp.value='';
+  waiting=true;
+  $('#send-btn').disabled=true;
+  addMsg('user',msg,Date.now());
+  const think=addMsg('agent','thinking',Date.now());
+  try{
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const data=await res.json();
+    if(!data.ok){think.innerHTML=escHtml('Error: '+data.error);}
+    else{pollResponse(data.msgId,think);}
+  }catch(e){think.innerHTML=escHtml('Error: '+e.message);}
+  waiting=false;
+  $('#send-btn').disabled=false;
+}
+
+async function pollResponse(msgId,bubble,attempt=0){
+  if(attempt>60){bubble.innerHTML=escHtml('Processing... check logs for status.');return;}
+  try{
+    const res=await fetch(`/api/chat/pending/${msgId}`);
+    const data=await res.json();
+    if(data.completed){
+      const r2=await fetch('/api/chat/response');
+      const turn=await r2.json();
+      let reply=turn.thinking||'Done.';
+      if(turn.toolName)reply+='\n\nTool: '+turn.toolName;
+      if(turn.toolResult)reply+='\nResult: '+turn.toolResult.slice(0,400);
+      bubble.innerHTML=escHtml(reply).replace(/\n/g,'<br>');
+    }else{
+      bubble.innerHTML=`<div style="margin-bottom:6px">Working... (${attempt+1}s)</div><div class="thinking-dots"><span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span></div>`;
+      setTimeout(()=>pollResponse(msgId,bubble,attempt+1),2000);
     }
-  } catch (e) {
-    thinkingDiv.textContent = `Error: ${e.message}`;
-    thinkingDiv.style.color = 'var(--red)';
-  }
-  
-  chatWaiting = false;
-  $('#chat-send').disabled = false;
+  }catch(e){setTimeout(()=>pollResponse(msgId,bubble,attempt+1),2000);}
 }
 
-async function pollForResponse(msgId, thinkingDiv, attempts = 0) {
-  if (attempts > 60) { // 60 seconds max
-    thinkingDiv.textContent = 'Agent is still working... Check the logs for progress.';
+$('#chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+
+// ─── Model Selection ─────────────────────────────────────────
+function toggleModelDropdown(){
+  const dd=$('#model-dropdown');
+  dd.classList.toggle('show');
+  $('#model-btn').classList.toggle('open');
+}
+
+async function loadModels(){
+  try{
+    const res=await fetch('/api/models');
+    const data=await res.json();
+    availableModels=data.models||[];
+    renderModelList(data.models,data.ollamaRunning);
+  }catch(e){
+    renderModelList([],false);
+  }
+  try{
+    const res=await fetch('/api/model');
+    const data=await res.json();
+    currentModel=data.currentModel||'unknown';
+    $('#current-model-label').textContent=currentModel;
+  }catch(e){}
+}
+
+function renderModelList(models,ollamaRunning){
+  const el=$('#model-list');
+  if(!models.length){
+    el.innerHTML='<div class="model-option" style="color:var(--text-dim)">No models found. Start Ollama first.</div>';
     return;
   }
-  
-  try {
-    const res = await fetch(`/api/chat/pending/${msgId}`);
-    const data = await res.json();
-    
-    if (data.completed) {
-      // Get the latest turn response
-      const turnRes = await fetch('/api/chat/response');
-      const turn = await turnRes.json();
-      
-      let response = turn.thinking || 'Agent completed the task.';
-      if (turn.toolName) response += `\n\nTool used: ${turn.toolName}`;
-      if (turn.toolResult) response += `\nResult: ${(turn.toolResult || '').slice(0, 500)}`;
-      
-      thinkingDiv.textContent = response;
-      thinkingDiv.classList.remove('system');
-      thinkingDiv.classList.add('agent');
-    } else if (data.found) {
-      thinkingDiv.textContent = `Working... (${attempts + 1}s)`;
-      setTimeout(() => pollForResponse(msgId, thinkingDiv, attempts + 1), 2000);
-    } else {
-      setTimeout(() => pollForResponse(msgId, thinkingDiv, attempts + 1), 2000);
-    }
-  } catch (e) {
-    setTimeout(() => pollForResponse(msgId, thinkingDiv, attempts + 1), 2000);
-  }
+  el.innerHTML=models.map(m=>`
+    <div class="model-option ${m.id===currentModel?'active':''}" onclick="selectModel('${m.id}')">
+      <div style="flex:1">
+        <div class="model-name">${m.displayName||m.id}</div>
+        <div class="model-info">${m.sizeGB||''} ${m.installed===false?'(not pulled)':''}</div>
+      </div>
+      <span class="model-free">FREE</span>
+      ${m.installed===false?`<span class="model-pull" onclick="event.stopPropagation();pullModel('${m.id}')">Pull</span>`:''}
+    </div>
+  `).join('');
 }
 
-$('#chat-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+async function selectModel(modelId){
+  $('#model-dropdown').classList.remove('show');
+  $('#model-btn').classList.remove('open');
+  if(modelId===currentModel)return;
+  selectedModalModel=modelId;
+  openModelModal(modelId);
+}
+
+function openModelModal(modelId){
+  const el=$('#modal-model-list');
+  el.innerHTML=availableModels.map(m=>`
+    <div class="model-item ${m.id===modelId?'selected':''}" onclick="selectedModalModel='${m.id}';document.querySelectorAll('.model-item').forEach(i=>i.classList.remove('selected'));this.classList.add('selected');">
+      <div class="left">
+        <div class="name">${m.displayName||m.id}</div>
+        <div class="desc">${m.sizeGB||'Free local model'}</div>
+      </div>
+      <span class="badge free">FREE</span>
+    </div>
+  `).join('');
+  $('#model-modal').classList.add('show');
+}
+
+function closeModelModal(){$('#model-modal').classList.remove('show');}
+
+async function confirmModelSwitch(){
+  if(!selectedModalModel)return;
+  closeModelModal();
+  addSystemMsg(`Switching model to ${selectedModalModel}...`);
+  try{
+    const res=await fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selectedModalModel})});
+    const data=await res.json();
+    if(data.ok){
+      currentModel=selectedModalModel;
+      $('#current-model-label').textContent=currentModel;
+      addSystemMsg(`Model switched to ${selectedModalModel}. The agent will use this model on next inference call.`);
+      renderModelList(availableModels,true);
+    }else{
+      addSystemMsg('Error switching model: '+data.error);
+    }
+  }catch(e){addSystemMsg('Error: '+e.message);}
+}
+
+async function pullModel(modelId){
+  addSystemMsg(`Pulling ${modelId}... This may take a few minutes.`);
+  try{
+    const res=await fetch('/api/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:modelId})});
+    const data=await res.json();
+    addSystemMsg(`Model ${modelId} pulled successfully!`);
+    loadModels();
+  }catch(e){addSystemMsg('Error pulling model: '+e.message);}
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.model-selector')){
+    $('#model-dropdown').classList.remove('show');
+    $('#model-btn').classList.remove('open');
+  }
 });
 
-// ─── Sidebar data ──────────────────────────────────────────────
-function renderTools(tools) {
-  const el = $('#tab-tools');
-  if (!tools.length) { el.innerHTML = '<div class="empty">No tool calls yet</div>'; return; }
-  el.innerHTML = tools.slice(0, 20).map(t => `
-    <div class="tool-call">
-      <div class="tool-name">${escapeHtml(t.name || 'unknown')}</div>
-      <div class="tool-args">${escapeHtml((t.arguments || '').slice(0, 200))}</div>
-      ${t.result ? `<div class="tool-result">${escapeHtml((t.result || '').slice(0, 200))}</div>` : ''}
-    </div>
-  `).join('');
-  $('#stat-tools').textContent = tools.length;
+// ─── Sidebar Data ──────────────────────────────────────────────
+function renderTools(tools){
+  const el=$('#pane-tools');
+  if(!tools.length){el.innerHTML='<div class="empty">No tools</div>';return;}
+  el.innerHTML=tools.slice(0,20).map(t=>`<div class="tool-card"><div class="name">${escHtml(t.name||'?')}</div><div class="args">${escHtml((t.arguments||'').slice(0,120))}</div>${t.result?`<div class="result">${escHtml((t.result||'').slice(0,150))}</div>`:''}</div>`).join('');
+  $('#stat-tools').textContent=tools.length;
+}
+function renderGoals(goals){
+  const el=$('#pane-goals');
+  if(!goals.length){el.innerHTML='<div class="empty">No goals</div>';return;}
+  el.innerHTML=goals.map(g=>`<div class="goal-card"><div class="title">${escHtml(g.title||'')}</div><span class="goal-badge">${g.status||'active'}</span></div>`).join('');
+  $('#stat-goals').textContent=goals.length;
+}
+function addLog(line){
+  const el=$('#pane-logs');
+  if(el.querySelector('.empty'))el.innerHTML='';
+  const d=document.createElement('div');
+  d.className='log-line';
+  if(line.includes('ERROR'))d.classList.add('error');
+  else if(line.includes('WARN'))d.classList.add('warn');
+  else d.classList.add('info');
+  d.textContent=line;
+  el.appendChild(d);
+  if(el.children.length>200)el.removeChild(el.firstChild);
+  el.scrollTop=el.scrollHeight;
 }
 
-function renderGoals(goals) {
-  const el = $('#tab-goals');
-  if (!goals.length) { el.innerHTML = '<div class="empty">No goals yet</div>'; return; }
-  el.innerHTML = goals.map(g => `
-    <div class="goal-item">
-      <div class="goal-title">${escapeHtml(g.title || 'Untitled')}</div>
-      <span class="goal-status ${g.status || 'active'}">${g.status || 'active'}</span>
-    </div>
-  `).join('');
-  $('#stat-goals').textContent = goals.length;
-}
-
-function addLogLine(line) {
-  const el = $('#tab-logs');
-  const div = document.createElement('div');
-  div.className = 'log-line';
-  if (line.includes('ERROR')) div.classList.add('error');
-  else if (line.includes('WARN')) div.classList.add('warn');
-  div.textContent = line;
-  el.appendChild(div);
-  if (el.children.length > 300) el.removeChild(el.firstChild);
-  el.scrollTop = el.scrollHeight;
-}
-
-// ─── Fetch all data ────────────────────────────────────────────
-let lastAgentMsgTs = 0;
-async function fetchAgentMessages() {
-  try {
-    const res = await fetch(`/api/chat/agent-messages?since=${lastAgentMsgTs}`);
-    const msgs = await res.json();
-    for (const msg of msgs) {
-      if (msg.ts > lastAgentMsgTs) lastAgentMsgTs = msg.ts;
-      // Don't re-add messages already in the chat
-      if (document.querySelector(`[data-msg-id="${msg.id}"]`)) continue;
-      addChatMsg('agent', msg.content, msg.ts, msg.id);
+let lastAgentMsgTs=0;
+async function fetchAgentMsgs(){
+  try{
+    const res=await fetch(`/api/chat/agent-messages?since=${lastAgentMsgTs}`);
+    const msgs=await res.json();
+    for(const m of msgs){
+      if(m.ts>lastAgentMsgTs)lastAgentMsgTs=m.ts;
+      if($(`[data-mid="${m.id}"]`))continue;
+      addMsg('agent',m.content,m.ts,m.id);
     }
-  } catch {}
+  }catch{}
 }
 
-async function fetchAll() {
-  try {
-    const res = await fetch('/api/status');
-    const data = await res.json();
-    $('#agent-name').textContent = data.name || '--';
-    $('#id-address').textContent = (data.walletAddress || '--').slice(0, 10) + '...';
-    $('#stat-turns').textContent = data.turns || 0;
-    renderTools(data.toolCalls || []);
-    renderGoals(data.goals || []);
-    if (data.recentLogs) {
-      const el = $('#tab-logs');
-      if (!el.children.length) {
-        for (const line of data.recentLogs.slice(-100)) addLogLine(line);
-      }
+async function syncAll(){
+  try{
+    const res=await fetch('/api/status');
+    const d=await res.json();
+    $('#agent-name').textContent=d.name||'gsr';
+    $('#avatar').textContent=(d.name||'G')[0].toUpperCase();
+    const addr=d.walletAddress||'unknown';
+    window.fullAddr=addr;
+    $('#wallet-addr').textContent=addr!=='unknown'?(addr.slice(0,6)+'...'+addr.slice(-4)):'unknown';
+    $('#stat-turns').textContent=d.turns||0;
+    renderTools(d.toolCalls||[]);
+    renderGoals(d.goals||[]);
+    if(d.currentModel&&d.currentModel!==currentModel){
+      currentModel=d.currentModel;
+      $('#current-model-label').textContent=currentModel;
     }
-  } catch {}
-  fetchAgentMessages();
+    if(d.recentLogs&&!$('#pane-logs').children.length){
+      for(const l of d.recentLogs.slice(-100))addLog(l);
+    }
+  }catch{}
+  fetchAgentMsgs();
 }
 
-// ─── WebSocket ─────────────────────────────────────────────────
 let ws;
-function connectWS() {
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${proto}//${location.host}`);
-  ws.onopen = () => { $('#status-dot').style.background = 'var(--green)'; $('#status-text').textContent = 'Connected'; };
-  ws.onclose = () => { $('#status-dot').style.background = 'var(--red)'; $('#status-text').textContent = 'Reconnecting...'; setTimeout(connectWS, 3000); };
-  ws.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'log') addLogLine(msg.line);
-      if (msg.type === 'update') fetchAll();
-      if (msg.type === 'agent_response' && msg.turn) {
-        // Update thinking indicator in chat if waiting
-        const thinkingMsgs = document.querySelectorAll('.chat-msg.agent');
-        const last = thinkingMsgs[thinkingMsgs.length - 1];
-        if (last && last.textContent.includes('Working')) {
-          let resp = msg.turn.thinking || 'Working...';
-          if (msg.turn.name) resp += `\nTool: ${msg.turn.name}`;
-          last.textContent = resp;
-        }
+function connectWS(){
+  const p=location.protocol==='https:'?'wss:':'ws:';
+  ws=new WebSocket(`${p}//${location.host}`);
+  ws.onopen=()=>{$('#status-text').textContent='Connected';};
+  ws.onclose=()=>{$('#status-text').textContent='Disconnected';setTimeout(connectWS,3000);};
+  ws.onmessage=e=>{
+    try{
+      const m=JSON.parse(e.data);
+      if(m.type==='log')addLog(m.line);
+      if(m.type==='update')syncAll();
+      if(m.type==='model_switch'){
+        currentModel=m.model;
+        $('#current-model-label').textContent=currentModel;
+        addSystemMsg(`Model switched to ${m.model}`);
+        loadModels();
       }
-    } catch {}
+    }catch{}
   };
 }
 
-// ─── Init ──────────────────────────────────────────────────────
-fetchAll();
-setInterval(fetchAll, 5000);
+syncAll();
+loadModels();
+setInterval(syncAll,5000);
 connectWS();
 </script>
 </body>

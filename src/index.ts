@@ -199,8 +199,9 @@ async function run(): Promise<void> {
   const resolvedChainType = config.chainType || walletChainType || "evm";
   const apiKey = process.env.CONWAY_API_KEY || config.conwayApiKey || loadApiKeyFromConfig() || "";
   const hasDirectInferenceKey = !!(config.openaiApiKey || config.anthropicApiKey);
-  if (!apiKey && !hasDirectInferenceKey) {
-    logger.error("No API key found. Run: automaton --provision or set openaiApiKey/anthropicApiKey in config.");
+  const hasOllama = !!(config.ollamaBaseUrl || process.env.OLLAMA_BASE_URL);
+  if (!apiKey && !hasDirectInferenceKey && !hasOllama) {
+    logger.error("No inference provider found. Set ollamaBaseUrl for free local inference, or run: automaton --provision");
     process.exit(1);
   }
 
@@ -477,6 +478,18 @@ async function run(): Promise<void> {
           if (wakeEvent) {
             logger.info(
               `[${new Date().toISOString()}] Woken by ${wakeEvent.source}: ${wakeEvent.reason}`,
+            );
+            db.deleteKV("sleep_until");
+            break;
+          }
+
+          // Also check for pending inbox messages directly
+          const pendingInbox = db.raw.prepare(
+            "SELECT 1 FROM inbox_messages WHERE status = 'received' LIMIT 1"
+          ).get();
+          if (pendingInbox) {
+            logger.info(
+              `[${new Date().toISOString()}] Woken by pending inbox message`,
             );
             db.deleteKV("sleep_until");
             break;

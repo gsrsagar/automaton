@@ -106,6 +106,15 @@ app.post("/api/chat", (req, res) => {
       return res.status(500).json({ error: "Failed to send message: " + e.message });
     }
 
+    // Wake the agent to process the new message immediately
+    try {
+      db.prepare(
+        `INSERT INTO wake_events (source, reason) VALUES (?, ?)`
+      ).run('dashboard', 'New message from creator via chat');
+    } catch (e) {
+      console.warn("Wake event insert failed:", e.message);
+    }
+
     // Store pending response info
     pendingResponses.set(msgId, {
       turnCountBefore,
@@ -207,6 +216,7 @@ app.get("/api/chat/response", (req, res) => {
 
 // ─── Polymarket Simulator ──────────────────────────────────────
 const polymarketState = {
+  balance: 10000.00,
   signals: [
     { id: 1, market: "US Presidential Election 2026", recommendation: "BUY YES (Trump)", confidence: "87%", volume: "$14.2M", time: "Just now" },
     { id: 2, market: "Fed Interest Rate Cut in September", recommendation: "BUY NO (50bps)", confidence: "62%", volume: "$8.4M", time: "2m ago" },
@@ -214,7 +224,7 @@ const polymarketState = {
     { id: 4, market: "Solana ETF approved in 2026", recommendation: "BUY YES", confidence: "54%", volume: "$11.9M", time: "1h ago" },
   ],
   positions: [
-    { id: 1, market: "US Presidential Election 2026 (Trump)", contract: "YES", qty: 25000, avgPrice: "$0.54", currentPrice: "$0.59", pnl: "+$1,250.00 (+9.2%)", status: "open" },
+    { id: 1, market: "US Presidential Election 2026", contract: "YES", qty: 25000, avgPrice: "$0.54", currentPrice: "$0.59", pnl: "+$1,250.00 (+9.2%)", status: "open" },
     { id: 2, market: "Fed Interest Rate Cut in September", contract: "NO", qty: 10000, avgPrice: "$0.42", currentPrice: "$0.45", pnl: "+$300.00 (+7.1%)", status: "open" },
   ],
   logs: [
@@ -339,6 +349,143 @@ app.get("/api/status", (req, res) => {
   }
 });
 
+// ─── Model Selection API ───────────────────────────────────────
+// List available free models from Ollama
+app.get("/api/models", async (req, res) => {
+  try {
+    const http = require("http");
+    const ollamaUrl = "http://localhost:11434/api/tags";
+    const response = await new Promise((resolve, reject) => {
+      http.get(ollamaUrl, { timeout: 5000 }, (resp) => {
+        let data = "";
+        resp.on("data", (chunk) => data += chunk);
+        resp.on("end", () => {
+          try { resolve(JSON.parse(data)); }
+          catch (e) { reject(e); }
+        });
+      }).on("error", reject);
+    });
+
+    const models = (response.models || []).map(m => ({
+      id: m.name,
+      displayName: m.name,
+      provider: "ollama",
+      size: m.size,
+      sizeGB: (m.size / (1024*1024*1024)).toFixed(1) + " GB",
+      free: true,
+    }));
+
+    // Add built-in free models that might not be pulled yet
+    const builtInFree = [
+      { id: "llama3.3:8b", displayName: "Llama 3.3 8B", provider: "ollama", free: true },
+      { id: "qwen3:8b", displayName: "Qwen3 8B", provider: "ollama", free: true },
+      { id: "mimo-v2.5", displayName: "MiMo V2.5", provider: "ollama", free: true },
+      { id: "nemotron-3-ultra", displayName: "Nemotron 3 Ultra", provider: "ollama", free: true },
+      { id: "north-mini-code", displayName: "North Mini Code", provider: "ollama", free: true },
+    ];
+
+    // Merge: installed models first, then built-in that aren't installed
+    const installedIds = new Set(models.map(m => m.id));
+    for (const bi of builtInFree) {
+      if (!installedIds.has(bi.id)) {
+        models.push({ ...bi, installed: false });
+      } else {
+        const idx = models.findIndex(m => m.id === bi.id);
+        if (idx >= 0) models[idx].displayName = bi.displayName;
+      }
+    }
+
+    res.json({ models, ollamaRunning: true });
+  } catch (e) {
+    // Ollama not running - return built-in free models
+    const builtInFree = [
+      { id: "llama3.3:8b", displayName: "Llama 3.3 8B", provider: "ollama", free: true, installed: false },
+      { id: "qwen3:8b", displayName: "Qwen3 8B", provider: "ollama", free: true, installed: false },
+      { id: "mimo-v2.5", displayName: "MiMo V2.5", provider: "ollama", free: true, installed: false },
+      { id: "nemotron-3-ultra", displayName: "Nemotron 3 Ultra", provider: "ollama", free: true, installed: false },
+      { id: "north-mini-code", displayName: "North Mini Code", provider: "ollama", free: true, installed: false },
+    ];
+    res.json({ models: builtInFree, ollamaRunning: false });
+  }
+});
+
+// Get current model
+app.get("/api/model", (req, res) => {
+  try {
+    const configPath = path.join(AUTOMATON_DIR, "automaton.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      res.json({
+        currentModel: config.modelStrategy?.inferenceModel || config.inferenceModel || "unknown",
+        lowComputeModel: config.modelStrategy?.lowComputeModel || "unknown",
+        ollamaUrl: config.ollamaBaseUrl || "not configured",
+      });
+    } else {
+      res.json({ currentModel: "unknown", ollamaUrl: "not configured" });
+    }
+  } catch (e) {
+    res.json({ currentModel: "unknown", error: e.message });
+  }
+});
+
+// Switch model (updates config and restarts agent)
+app.post("/api/model/switch", (req, res) => {
+  try {
+    const { model } = req.body;
+    if (!model) return res.status(400).json({ error: "Model required" });
+
+    const configPath = path.join(AUTOMATON_DIR, "automaton.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+
+    config.inferenceModel = model;
+    if (!config.modelStrategy) config.modelStrategy = {};
+    config.modelStrategy.inferenceModel = model;
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+    // Store model switch event in KV
+    try {
+      db.prepare("INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, datetime('now'))")
+        .run("model_switch_request", JSON.stringify({ model, requestedAt: new Date().toISOString() }));
+    } catch (e) { console.warn("KV write failed:", e.message); }
+
+    broadcast({ type: "model_switch", model });
+    res.json({ ok: true, model });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Pull a model (downloads via Ollama)
+app.post("/api/models/pull", (req, res) => {
+  try {
+    const { model } = req.body;
+    if (!model) return res.status(400).json({ error: "Model name required" });
+
+    const http = require("http");
+    const postData = JSON.stringify({ name: model, stream: false });
+
+    const ollamaReq = http.request("http://localhost:11434/api/pull", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(postData) },
+      timeout: 300000,
+    }, (resp) => {
+      let data = "";
+      resp.on("data", (chunk) => data += chunk);
+      resp.on("end", () => {
+        try { res.json(JSON.parse(data)); }
+        catch { res.json({ status: "done" }); }
+      });
+    });
+
+    ollamaReq.on("error", (e) => res.status(500).json({ error: e.message }));
+    ollamaReq.write(postData);
+    ollamaReq.end();
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/api/goals", (req, res) => {
   try { res.json(db.prepare("SELECT * FROM goals ORDER BY created_at DESC").all()); }
   catch { res.json([]); }
@@ -346,6 +493,79 @@ app.get("/api/goals", (req, res) => {
 
 app.get("/api/polymarket", (req, res) => {
   res.json(polymarketState);
+});
+
+app.post("/api/polymarket/trade", (req, res) => {
+  try {
+    const { market, action, contract, qty, price } = req.body;
+    if (!market || !action || !contract || !qty || !price) {
+      return res.status(400).json({ error: "Missing required trade fields" });
+    }
+
+    const tradeQty = parseInt(qty, 10);
+    const tradePrice = parseFloat(price);
+    const totalCost = tradeQty * tradePrice;
+
+    if (action === "buy") {
+      if (polymarketState.balance < totalCost) {
+        return res.status(400).json({ error: "Insufficient mock USD balance" });
+      }
+      polymarketState.balance -= totalCost;
+
+      // Find or create position
+      let pos = polymarketState.positions.find(p => p.market === market && p.contract === contract);
+      if (pos) {
+        const currentTotalCost = parseFloat(pos.avgPrice.replace("$", "")) * pos.qty;
+        pos.qty += tradeQty;
+        pos.avgPrice = `$${((currentTotalCost + totalCost) / pos.qty).toFixed(2)}`;
+      } else {
+        polymarketState.positions.push({
+          id: Date.now(),
+          market,
+          contract,
+          qty: tradeQty,
+          avgPrice: `$${tradePrice.toFixed(2)}`,
+          currentPrice: `$${tradePrice.toFixed(2)}`,
+          pnl: "+$0.00 (+0.0%)",
+          status: "open"
+        });
+      }
+    } else if (action === "sell") {
+      // Find position to sell
+      let posIndex = polymarketState.positions.findIndex(p => p.market === market && p.contract === contract);
+      if (posIndex === -1 || polymarketState.positions[posIndex].qty < tradeQty) {
+        return res.status(400).json({ error: "Insufficient position contracts to sell" });
+      }
+
+      const pos = polymarketState.positions[posIndex];
+      polymarketState.balance += totalCost;
+      pos.qty -= tradeQty;
+
+      if (pos.qty === 0) {
+        polymarketState.positions.splice(posIndex, 1);
+      } else {
+        // Re-calculate P&L
+        const curr = parseFloat(pos.currentPrice.replace("$", ""));
+        const avg = parseFloat(pos.avgPrice.replace("$", ""));
+        const diff = (curr - avg) * pos.qty;
+        const pct = ((curr - avg) / avg * 100).toFixed(1);
+        pos.pnl = `${diff >= 0 ? "+" : ""}$${diff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${diff >= 0 ? "+" : ""}${pct}%)`;
+      }
+    }
+
+    // Add record to execution ledger
+    polymarketState.logs.unshift({
+      ts: Date.now(),
+      type: "trade",
+      message: `[Polymarket] User Executed ${action.toUpperCase()} order: ${tradeQty.toLocaleString()} ${market} ${contract} contracts at $${tradePrice.toFixed(2)}.`
+    });
+    if (polymarketState.logs.length > 15) polymarketState.logs.pop();
+
+    broadcast({ type: "update" });
+    res.json({ ok: true, balance: polymarketState.balance, positions: polymarketState.positions });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post("/api/settings/model", (req, res) => {
