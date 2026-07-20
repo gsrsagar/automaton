@@ -136,10 +136,10 @@ app.get("/api/chat/pending/:msgId", (req, res) => {
       // Get the latest turn's thinking/response
       const latestTurn = db
         .prepare(
-          `SELECT t.thinking, t.token_count, tc.name, tc.result
+          `SELECT t.thinking, t.token_usage as tokenCount, tc.name, tc.result
            FROM turns t
            LEFT JOIN tool_calls tc ON tc.turn_id = t.id
-           ORDER BY t.timestamp DESC LIMIT 1`
+           ORDER BY t.created_at DESC LIMIT 1`
         )
         .get();
 
@@ -172,11 +172,11 @@ app.get("/api/chat/response", (req, res) => {
   try {
     const turn = db
       .prepare(
-        `SELECT t.id, t.timestamp, t.thinking, t.token_count as tokenCount,
+        `SELECT t.id, t.created_at as timestamp, t.thinking, t.token_usage as tokenCount,
                 tc.name as toolName, tc.arguments as toolArgs, tc.result as toolResult
          FROM turns t
          LEFT JOIN tool_calls tc ON tc.turn_id = t.id
-         ORDER BY t.timestamp DESC LIMIT 1`
+         ORDER BY t.created_at DESC LIMIT 1`
       )
       .get();
     res.json(turn || {});
@@ -204,12 +204,12 @@ app.get("/api/status", (req, res) => {
     let recentTurns = [];
     try {
       recentTurns = db.prepare(
-        `SELECT t.id, t.timestamp, t.state, t.thinking, t.token_count as tokenCount, t.cost_cents as costCents,
+        `SELECT t.id, t.created_at as timestamp, t.state, t.thinking, t.token_usage as tokenCount, t.cost_cents as costCents,
                 tc.name as toolName, tc.arguments as toolArgs, tc.result as toolResult
          FROM turns t LEFT JOIN tool_calls tc ON tc.turn_id = t.id
-         ORDER BY t.timestamp DESC LIMIT 50`
+         ORDER BY t.created_at DESC LIMIT 50`
       ).all();
-    } catch {}
+    } catch (e) { console.error("recentTurns query error:", e.message); }
 
     let goals = [];
     try { goals = db.prepare("SELECT * FROM goals ORDER BY created_at DESC").all(); } catch {}
@@ -217,11 +217,11 @@ app.get("/api/status", (req, res) => {
     let toolCalls = [];
     try {
       toolCalls = db.prepare(
-        `SELECT tc.*, t.timestamp as turnTimestamp
+        `SELECT tc.*, t.created_at as turnTimestamp
          FROM tool_calls tc JOIN turns t ON t.id = tc.turn_id
-         ORDER BY t.timestamp DESC LIMIT 30`
+         ORDER BY t.created_at DESC LIMIT 30`
       ).all();
-    } catch {}
+    } catch (e) { console.error("toolCalls query error:", e.message); }
 
     let recentLogs = [];
     try {
@@ -300,9 +300,9 @@ setInterval(() => {
 
       // Check for new turns that might be responses to chat messages
       const latestTurn = db.prepare(
-        `SELECT t.id, t.timestamp, t.thinking, tc.name, tc.result
+        `SELECT t.id, t.created_at as timestamp, t.thinking, tc.name, tc.result
          FROM turns t LEFT JOIN tool_calls tc ON tc.turn_id = t.id
-         ORDER BY t.timestamp DESC LIMIT 1`
+         ORDER BY t.created_at DESC LIMIT 1`
       ).get();
 
       if (latestTurn) {
